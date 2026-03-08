@@ -1,0 +1,120 @@
+import { createClient } from '@supabase/supabase-js'
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error('Variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY são obrigatórias.')
+}
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+// ─── Tipos de domínio ──────────────────────────────────────────────────────
+
+export type PepEntry = {
+  id: string
+  ref: 'C' | 'SC' | 'P' | 'SP' | 'PT'
+  comp: number | null
+  prod: number | null
+  subp: number | null
+  pct: number | null
+  descricao: string | null
+  n_atual: number
+  o_atual: number
+  p_atual: number
+  r_base: number
+  s_base: number
+  t_base: number
+  versao: string
+  linha_excel: number | null
+  importado_em: string
+}
+
+export type PmrOutput = {
+  id: string
+  componente: string | null
+  produto: string | null
+  codigo: string | null
+  descricao: string | null
+  unidade: string | null
+  linha_base: number | null
+  meta_contrato: number | null
+  meta_periodo: number | null
+  realizado: number
+  pct_realizado: number
+  periodo_ref: string | null
+  importado_em: string
+}
+
+export type PmrOutcome = {
+  id: string
+  componente: string | null
+  objetivo: string | null
+  codigo: string | null
+  descricao: string | null
+  unidade: string | null
+  linha_base: number | null
+  meta_contrato: number | null
+  realizado: number
+  pct_realizado: number
+  fonte_dados: string | null
+  periodo_ref: string | null
+  importado_em: string
+}
+
+export type Risco = {
+  id: string
+  descricao: string
+  categoria: 'Financeiro' | 'Político' | 'Técnico' | 'Ambiental' | 'Social' | 'Institucional'
+  probabilidade: number
+  impacto: number
+  nivel: number
+  mitigacao: string | null
+  responsavel: string | null
+  status: 'Ativo' | 'Mitigado' | 'Monitorando' | 'Fechado'
+  criado_em: string
+  atualizado_em: string
+}
+
+export type Atividade = {
+  id: string
+  titulo: string
+  componente: string | null
+  responsavel: string | null
+  prazo: string | null
+  progresso: number
+  prioridade: 'Alta' | 'Media' | 'Baixa'
+  status: 'todo' | 'progress' | 'waiting' | 'done'
+  criado_em: string
+  atualizado_em: string
+}
+
+export type NotaCritica = {
+  id: string
+  componente: string | null
+  nota: string
+  autor: string | null
+  criado_em: string
+}
+
+export type Recomendacao = {
+  id: string
+  titulo: string
+  descricao: string | null
+  urgencia: 'Alta' | 'Media' | 'Baixa'
+  componente: string | null
+  status: 'Pendente' | 'Em Andamento' | 'Concluída' | 'Cancelada'
+  criado_em: string
+}
+
+export type NaoObjecao = {
+  id: string
+  processo: string
+  tipo: 'Aquisição' | 'Pessoal' | 'Consultoria' | 'TdR' | 'Outro' | null
+  solicitado_em: string | null
+  recebido_em: string | null
+  status: 'Pendente' | 'Recebida' | 'Vencida' | 'Cancelada'
+  valor_usd: number | null
+  observacoes: string | null
+  criado_em: string
+}

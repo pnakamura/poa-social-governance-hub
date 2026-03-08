@@ -1,27 +1,56 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
+import { TooltipProvider } from '@/components/ui/tooltip'
+import { Toaster } from '@/components/ui/sonner'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 
-const queryClient = new QueryClient();
+import { AppLayout } from '@/components/layout/AppLayout'
+import Dashboard from '@/pages/Dashboard'
+import ProgramProfile from '@/pages/ProgramProfile'
+import PEPPage from '@/pages/PEP/index'
+import PMROutputs from '@/pages/PMR/Outputs'
+import PMROutcomes from '@/pages/PMR/Outcomes'
+import Risks from '@/pages/Risks'
+import Activities from '@/pages/Activities'
+import NoObjections from '@/pages/NoObjections'
+import Analysis from '@/pages/Analysis'
+import Reports from '@/pages/Reports'
+import Settings from '@/pages/Settings'
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 1000 * 60 * 5, retry: 1 },
+  },
+})
 
-export default App;
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<AppLayout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="programa" element={<ProgramProfile />} />
+              <Route path="pep" element={<PEPPage />} />
+              <Route path="pmr/outputs" element={<PMROutputs />} />
+              <Route path="pmr/outcomes" element={<PMROutcomes />} />
+              <Route path="riscos" element={<Risks />} />
+              <Route path="atividades" element={<Activities />} />
+              <Route path="nao-objecoes" element={<NoObjections />} />
+              <Route path="analise" element={<Analysis />} />
+              <Route path="relatorios" element={<Reports />} />
+              <Route path="configuracoes" element={<Settings />} />
+              <Route path="*" element={
+                <div className="flex flex-col items-center justify-center h-64 gap-2">
+                  <p className="text-3xl font-bold text-muted-foreground">404</p>
+                  <p className="text-sm text-muted-foreground">Página não encontrada</p>
+                </div>
+              } />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+        <Toaster position="bottom-right" richColors />
+      </TooltipProvider>
+    </QueryClientProvider>
+  )
+}
