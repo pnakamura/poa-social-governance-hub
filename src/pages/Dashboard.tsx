@@ -36,7 +36,7 @@ export default function Dashboard() {
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         <KPICard
-          title="Dotação BID"
+          title="Execução BID"
           value={pep ? PCT(pep.execucaoBID) : '—'}
           subtitle={pep ? `${USD(pep.totalBID)} atual` : undefined}
           icon={DollarSign}
