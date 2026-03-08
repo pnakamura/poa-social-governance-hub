@@ -4,6 +4,18 @@
 --       pct_realizado e nivel são calculados na aplicação
 
 -- ============================================================
+-- Limpeza (drop seguro para recriar do zero)
+-- ============================================================
+DROP TABLE IF EXISTS nao_objecoes   CASCADE;
+DROP TABLE IF EXISTS recomendacoes  CASCADE;
+DROP TABLE IF EXISTS notas_criticas CASCADE;
+DROP TABLE IF EXISTS atividades     CASCADE;
+DROP TABLE IF EXISTS riscos         CASCADE;
+DROP TABLE IF EXISTS pmr_outcomes   CASCADE;
+DROP TABLE IF EXISTS pmr_outputs    CASCADE;
+DROP TABLE IF EXISTS pep_entries    CASCADE;
+
+-- ============================================================
 -- PEP — Plano de Execução do Projeto (hierarquia C→P→SP→PT)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS pep_entries (
