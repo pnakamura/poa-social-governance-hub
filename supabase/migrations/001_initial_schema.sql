@@ -1,5 +1,7 @@
 -- POA+SOCIAL BID — Schema inicial
 -- Programa: BR-L1597 / Contrato 5750-OC
+-- NOTA: colunas geradas removidas para compatibilidade com Supabase
+--       pct_realizado e nivel são calculados na aplicação
 
 -- ============================================================
 -- PEP — Plano de Execução do Projeto (hierarquia C→P→SP→PT)
@@ -41,9 +43,7 @@ CREATE TABLE IF NOT EXISTS pmr_outputs (
   meta_contrato  numeric(15,2),
   meta_periodo   numeric(15,2),
   realizado      numeric(15,2) DEFAULT 0,
-  pct_realizado  numeric(6,2)  GENERATED ALWAYS AS (
-    CASE WHEN meta_contrato > 0 THEN ROUND((realizado / meta_contrato) * 100, 2) ELSE 0 END
-  ) STORED,
+  pct_realizado  numeric(6,2)  DEFAULT 0, -- calculado na importação
   periodo_ref    date,
   importado_em   timestamptz DEFAULT now()
 );
@@ -61,9 +61,7 @@ CREATE TABLE IF NOT EXISTS pmr_outcomes (
   linha_base     numeric(15,2),
   meta_contrato  numeric(15,2),
   realizado      numeric(15,2) DEFAULT 0,
-  pct_realizado  numeric(6,2)  GENERATED ALWAYS AS (
-    CASE WHEN meta_contrato > 0 THEN ROUND((realizado / meta_contrato) * 100, 2) ELSE 0 END
-  ) STORED,
+  pct_realizado  numeric(6,2)  DEFAULT 0, -- calculado na importação
   fonte_dados    text,
   periodo_ref    date,
   importado_em   timestamptz DEFAULT now()
@@ -78,7 +76,7 @@ CREATE TABLE IF NOT EXISTS riscos (
   categoria     text NOT NULL CHECK (categoria IN ('Financeiro','Político','Técnico','Ambiental','Social','Institucional')),
   probabilidade integer NOT NULL CHECK (probabilidade BETWEEN 1 AND 5),
   impacto       integer NOT NULL CHECK (impacto BETWEEN 1 AND 5),
-  nivel         integer GENERATED ALWAYS AS (probabilidade * impacto) STORED,
+  nivel         integer DEFAULT 0,       -- calculado na aplicação (probabilidade * impacto)
   mitigacao     text,
   responsavel   text,
   status        text DEFAULT 'Ativo' CHECK (status IN ('Ativo','Mitigado','Monitorando','Fechado')),

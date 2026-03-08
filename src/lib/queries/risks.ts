@@ -38,7 +38,8 @@ export const useCreateRisco = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (risco: Omit<Risco, 'id' | 'nivel' | 'criado_em' | 'atualizado_em'>) => {
-      const { data, error } = await supabase.from('riscos').insert(risco).select().single()
+      const nivel = (risco.probabilidade ?? 0) * (risco.impacto ?? 0)
+      const { data, error } = await supabase.from('riscos').insert({ ...risco, nivel }).select().single()
       if (error) throw error
       return data
     },
@@ -50,9 +51,12 @@ export const useUpdateRisco = () => {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Risco> & { id: string }) => {
+      const nivel = (updates.probabilidade && updates.impacto)
+        ? updates.probabilidade * updates.impacto
+        : undefined
       const { data, error } = await supabase
         .from('riscos')
-        .update({ ...updates, atualizado_em: new Date().toISOString() })
+        .update({ ...updates, ...(nivel !== undefined && { nivel }), atualizado_em: new Date().toISOString() })
         .eq('id', id)
         .select()
         .single()

@@ -142,6 +142,9 @@ def import_pmr_outputs(wb, client) -> int:
     for row in aba.iter_rows(min_row=2):
         if not any(c.value for c in row[:6]):
             continue
+        meta = val(row[6]) or None
+        realizado = val(row[8])
+        pct = round((realizado / meta) * 100, 2) if meta and meta > 0 else 0.0
         rows.append({
             "componente":    txt(row[0]),
             "produto":       txt(row[1]),
@@ -149,9 +152,10 @@ def import_pmr_outputs(wb, client) -> int:
             "descricao":     txt(row[3]),
             "unidade":       txt(row[4]),
             "linha_base":    val(row[5]) or None,
-            "meta_contrato": val(row[6]) or None,
+            "meta_contrato": meta,
             "meta_periodo":  val(row[7]) or None,
-            "realizado":     val(row[8]),
+            "realizado":     realizado,
+            "pct_realizado": pct,
         })
 
     if not rows:
@@ -179,6 +183,9 @@ def import_pmr_outcomes(wb, client) -> int:
     for row in aba.iter_rows(min_row=2):
         if not any(c.value for c in row[:5]):
             continue
+        meta_oc = val(row[6]) or None
+        realizado_oc = val(row[7])
+        pct_oc = round((realizado_oc / meta_oc) * 100, 2) if meta_oc and meta_oc > 0 else 0.0
         rows.append({
             "componente":    txt(row[0]),
             "objetivo":      txt(row[1]),
@@ -186,8 +193,9 @@ def import_pmr_outcomes(wb, client) -> int:
             "descricao":     txt(row[3]),
             "unidade":       txt(row[4]),
             "linha_base":    val(row[5]) or None,
-            "meta_contrato": val(row[6]) or None,
-            "realizado":     val(row[7]),
+            "meta_contrato": meta_oc,
+            "realizado":     realizado_oc,
+            "pct_realizado": pct_oc,
             "fonte_dados":   txt(row[8]),
         })
 
