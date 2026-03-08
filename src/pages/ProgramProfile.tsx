@@ -1,6 +1,7 @@
-import { Building2, Calendar, DollarSign, Users, FileText, ExternalLink } from 'lucide-react'
+import { Building2, Calendar, DollarSign, FileText, Users2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
 
 const PROGRAMA = {
   nome: 'POA+SOCIAL',
@@ -126,6 +127,65 @@ export default function ProgramProfile() {
           </CardContent>
         </Card>
       </div>
+
+      {/* OrgChart */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Users2 className="w-4 h-4" /> Estrutura Organizacional
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center gap-0 text-xs">
+            {/* Nível 1 */}
+            <div className="bg-primary text-white rounded-lg px-4 py-2 font-semibold text-center">PMPA</div>
+            <div className="w-px h-4 bg-border" />
+            {/* Nível 2 */}
+            <div className="bg-primary/80 text-white rounded-lg px-4 py-2 font-semibold text-center">SMPG</div>
+            <div className="w-px h-4 bg-border" />
+            {/* Nível 3 */}
+            <div className="bg-primary/60 text-white rounded-lg px-4 py-2 font-semibold text-center">DPF — Departamento de Projetos e Financiamentos</div>
+            <div className="w-px h-4 bg-border" />
+            {/* Nível 4 */}
+            <div className="bg-primary/40 text-white rounded-lg px-4 py-2 font-semibold text-center">UGP — Unidade de Gerenciamento do Programa</div>
+            <div className="w-px h-4 bg-border" />
+            {/* Nível 5 — ULPs */}
+            <p className="text-[10px] text-muted-foreground mb-1">Unidades de Licitação e Programação (ULPs)</p>
+            <div className="flex gap-2 flex-wrap justify-center">
+              {['SMS', 'SMAS', 'SMED', 'SMID', 'PROCEMPA', 'DEMHAB'].map(ulp => (
+                <div key={ulp} className="bg-muted rounded-md px-3 py-1.5 text-xs font-medium border border-border">
+                  {ulp}
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Contexto Social */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Contexto Social — Porto Alegre</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {[
+              { label: 'Famílias em pobreza extrema', value: '64.395', sub: '~13% da população' },
+              { label: 'Moradores de rua', value: '3.368', sub: '+59,2% entre 2016-2020' },
+              { label: 'Crianças fora da escola', value: '6.749', sub: '7-17 anos (SMED 2021)' },
+              { label: 'Jovens nem-nem', value: '8,7%', sub: 'Não estudam, não trabalham' },
+              { label: 'Valor total do programa', value: 'US$ 161M', sub: 'BID + Contrapartida local' },
+              { label: 'Prazo de execução', value: '5 anos', sub: 'Início: Dez/2024' },
+            ].map(item => (
+              <div key={item.label} className="bg-muted/30 rounded-lg p-3">
+                <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                <p className="text-lg font-bold text-primary mt-0.5">{item.value}</p>
+                <p className="text-[10px] text-muted-foreground">{item.sub}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Documentos */}
       <Card>

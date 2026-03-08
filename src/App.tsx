@@ -15,6 +15,10 @@ import NoObjections from '@/pages/NoObjections'
 import Analysis from '@/pages/Analysis'
 import Reports from '@/pages/Reports'
 import Settings from '@/pages/Settings'
+import Marcos from '@/pages/Marcos'
+import PontosAtencao from '@/pages/PontosAtencao'
+import Aquisicoes from '@/pages/Aquisicoes'
+import Temas from '@/pages/Temas'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,6 +44,10 @@ export default function App() {
               <Route path="analise" element={<Analysis />} />
               <Route path="relatorios" element={<Reports />} />
               <Route path="configuracoes" element={<Settings />} />
+              <Route path="marcos" element={<Marcos />} />
+              <Route path="pontos-atencao" element={<PontosAtencao />} />
+              <Route path="aquisicoes" element={<Aquisicoes />} />
+              <Route path="temas" element={<Temas />} />
               <Route path="*" element={
                 <div className="flex flex-col items-center justify-center h-64 gap-2">
                   <p className="text-3xl font-bold text-muted-foreground">404</p>

@@ -116,3 +116,86 @@ export type NaoObjecao = {
   observacoes: string | null
   criado_em: string
 }
+
+export type Marco = {
+  id: string
+  data_marco: string
+  tipo: 'legislativo' | 'contratual' | 'missao_bid' | 'entrega_doc' | 'obra' | 'aquisicao' | 'outro'
+  titulo: string
+  descricao: string | null
+  area: 'obras' | 'digital' | 'social' | 'governanca' | 'financeiro' | 'aquisicoes' | 'socioambiental' | null
+  status: 'concluido' | 'em_andamento' | 'previsto' | 'atrasado'
+  referencia_doc: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type PontoAtencao = {
+  id: string
+  tema: string
+  descricao: string | null
+  area: 'obras' | 'digital' | 'social' | 'governanca' | 'juridico' | 'socioambiental' | 'aquisicoes' | 'financeiro'
+  criticidade: 'critico' | 'alerta' | 'ok' | 'info'
+  status_texto: string | null
+  responsavel: string | null
+  prazo_previsto: string | null
+  resolucao: string | null
+  data_atualizacao: string | null
+  ativo: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type Aquisicao = {
+  id: string
+  id_processo: string | null
+  titulo: string
+  tipo: 'obra' | 'consultoria' | 'bem' | 'servico' | 'fidic'
+  modalidade: string | null
+  secretaria: 'SMPG' | 'SMS' | 'SMAS' | 'SMED' | 'SMID' | 'SMDET' | 'PROCEMPA' | 'DEMHAB' | 'Outro'
+  componente: string | null
+  valor_usd: number | null
+  valor_brl: number | null
+  financiador: string
+  status: 'planejado' | 'preparacao' | 'publicado' | 'em_avaliacao' | 'adjudicado' | 'contratado' | 'em_execucao' | 'concluido' | 'cancelado'
+  data_inicio_previsto: string | null
+  data_publicacao: string | null
+  data_adjudicacao: string | null
+  data_contratacao: string | null
+  data_fim_previsto: string | null
+  data_fim_real: string | null
+  fidic_aplicavel: boolean
+  lote: string | null
+  notas: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type SyncLog = {
+  id: number
+  tabela_destino: string
+  fonte: string
+  versao: string | null
+  registros_lidos: number
+  registros_inseridos: number
+  registros_atualizados: number
+  registros_ignorados: number
+  registros_erro: number
+  status: 'ok' | 'erro' | 'parcial'
+  mensagem_erro: string | null
+  executado_por: string
+  executado_em: string
+}
+
+export type ProgramaContexto = {
+  id: string
+  categoria: 'demografico' | 'social' | 'economico' | 'climatico' | 'financeiro'
+  indicador: string
+  valor: number | null
+  valor_texto: string | null
+  unidade: string | null
+  fonte: string | null
+  ano_referencia: number | null
+  notas: string | null
+  created_at: string
+}

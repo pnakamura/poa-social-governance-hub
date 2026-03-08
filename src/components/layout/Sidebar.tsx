@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Building2, FileSpreadsheet, BarChart3,
-  AlertTriangle, ListChecks, ClipboardCheck, MessageSquareWarning,
+  AlertTriangle, ListChecks, MessageSquareWarning,
   FileText, Settings, ChevronLeft, ChevronRight, TrendingUp,
-  CheckSquare,
+  CheckSquare, Calendar, AlertOctagon, ShoppingCart, Tag,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { SyncStatusBadge } from '@/components/SyncStatusBadge'
 
 const NAV_GROUPS = [
   {
@@ -14,13 +15,17 @@ const NAV_GROUPS = [
     items: [
       { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
       { to: '/programa', icon: Building2, label: 'Programa' },
+      { to: '/temas', icon: Tag, label: 'Temas' },
+      { to: '/marcos', icon: Calendar, label: 'Timeline' },
+      { to: '/pontos-atencao', icon: AlertOctagon, label: 'Pontos de Atenção' },
       { to: '/atividades', icon: ListChecks, label: 'Atividades' },
       { to: '/riscos', icon: AlertTriangle, label: 'Riscos' },
     ],
   },
   {
-    label: 'Financeiro / PMR',
+    label: 'Aquisições / PMR',
     items: [
+      { to: '/aquisicoes', icon: ShoppingCart, label: 'Aquisições' },
       { to: '/pep', icon: FileSpreadsheet, label: 'PEP RS' },
       { to: '/pmr/outputs', icon: BarChart3, label: 'PMR — Outputs' },
       { to: '/pmr/outcomes', icon: TrendingUp, label: 'PMR — Outcomes' },
@@ -101,6 +106,13 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
+
+      {/* Sync status */}
+      {!collapsed && (
+        <div className="border-t border-sidebar-border py-1.5">
+          <SyncStatusBadge />
+        </div>
+      )}
 
       {/* Collapse toggle */}
       <button

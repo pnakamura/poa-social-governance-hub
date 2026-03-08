@@ -1,0 +1,130 @@
+{
+  "name": "POA+SOCIAL — Sync Google Sheets BID → Supabase",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "minutes", "minutesInterval": 5 }]
+        }
+      },
+      "id": "node-schedule",
+      "name": "Schedule Trigger (5min)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "documentId": { "__rl": true, "value": "1gaeY_iQFwYBB-byKFETBz54FcfRVm5mFvuMLfIR7E9Y", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "BID", "mode": "name" },
+        "dataLocationOnSheet": { "values": { "rangeDefinition": "specifyRangeA1", "range": "A1:Z5000" } },
+        "filtersUI": {},
+        "options": {}
+      },
+      "id": "node-sheets-read",
+      "name": "Google Sheets — Ler aba BID",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [460, 300],
+      "credentials": { "googleSheetsOAuth2Api": { "id": "GOOGLE_SA_CREDENTIAL_ID", "name": "Google SA BID POA" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalizar e calcular hash de cada linha para detectar mudanças\nconst rows = $input.all();\nconst result = [];\n\nfor (const item of rows) {\n  const row = item.json;\n  \n  // Pular linhas sem título\n  if (!row['Titulo'] && !row['titulo'] && !row['TITULO']) continue;\n  \n  const titulo = String(row['Titulo'] || row['titulo'] || row['TITULO'] || '').trim();\n  const idProcesso = String(row['ID_Processo'] || row['id_processo'] || row['Processo'] || '').trim() || null;\n  const tipo = String(row['Tipo'] || row['tipo'] || 'servico').trim().toLowerCase();\n  const secretaria = String(row['Secretaria'] || row['secretaria'] || 'SMPG').trim();\n  const componente = String(row['Componente'] || row['componente'] || '').trim() || null;\n  const valorUSD = parseFloat(String(row['Valor_USD'] || row['valor_usd'] || '0').replace(/[^0-9.]/g, '')) || null;\n  const status = String(row['Status'] || row['status'] || 'planejado').trim().toLowerCase();\n  const modalidade = String(row['Modalidade'] || row['modalidade'] || '').trim() || null;\n  const lote = String(row['Lote'] || row['lote'] || '').trim() || null;\n  const fidic = String(row['FIDIC'] || row['fidic'] || '').toLowerCase() === 'sim';\n  const dataInicio = String(row['Data_Inicio'] || row['data_inicio_previsto'] || '').trim() || null;\n  const notas = String(row['Notas'] || row['notas'] || '').trim() || null;\n\n  // Mapear tipo para valores válidos do CHECK constraint\n  const tipoMap = { 'obra': 'obra', 'consultoria': 'consultoria', 'bem': 'bem', 'servico': 'servico', 'fidic': 'fidic' };\n  const tipoNorm = tipoMap[tipo] || 'servico';\n\n  // Mapear secretaria para valores válidos\n  const secMap = ['SMPG','SMS','SMAS','SMED','SMID','SMDET','PROCEMPA','DEMHAB','Outro'];\n  const secretariaNorm = secMap.includes(secretaria) ? secretaria : 'Outro';\n\n  // Mapear status para valores válidos\n  const statusMap = ['planejado','preparacao','publicado','em_avaliacao','adjudicado','contratado','em_execucao','concluido','cancelado'];\n  const statusNorm = statusMap.includes(status) ? status : 'planejado';\n\n  const record = {\n    titulo,\n    id_processo: idProcesso,\n    tipo: tipoNorm,\n    secretaria: secretariaNorm,\n    componente,\n    valor_usd: valorUSD,\n    status: statusNorm,\n    modalidade,\n    lote,\n    fidic_aplicavel: fidic,\n    data_inicio_previsto: dataInicio,\n    notas,\n    financiador: 'BID'\n  };\n\n  // Gerar hash simples para comparação\n  const hash = JSON.stringify(record);\n  result.push({ json: { ...record, _hash: hash } });\n}\n\nreturn result;"
+      },
+      "id": "node-normalize",
+      "name": "Normalizar colunas + gerar hash",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dvqnlnxkwcrxbctujajl.supabase.co/rest/v1/aquisicoes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "resolution=merge-duplicates,return=representation" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "node-upsert",
+      "name": "Supabase Upsert — aquisicoes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Agregar resultado e preparar log\nconst items = $input.all();\nconst inseridos = items.filter(i => i.json?.id).length;\nconst erros = items.filter(i => i.json?.error || i.json?.message).length;\n\nreturn [{ json: {\n  tabela_destino: 'aquisicoes',\n  fonte: 'google_sheets_dpf',\n  versao: new Date().toISOString().slice(0,10).replace(/-/g,''),\n  registros_lidos: items.length,\n  registros_inseridos: inseridos,\n  registros_atualizados: 0,\n  registros_erro: erros,\n  status: erros === 0 ? 'ok' : 'parcial',\n  executado_por: 'n8n_sync_sheets'\n}}];"
+      },
+      "id": "node-log-prep",
+      "name": "Preparar sync_log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dvqnlnxkwcrxbctujajl.supabase.co/rest/v1/sync_log",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "node-sync-log",
+      "name": "INSERT sync_log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 300]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger (5min)": {
+      "main": [[{ "node": "Google Sheets — Ler aba BID", "type": "main", "index": 0 }]]
+    },
+    "Google Sheets — Ler aba BID": {
+      "main": [[{ "node": "Normalizar colunas + gerar hash", "type": "main", "index": 0 }]]
+    },
+    "Normalizar colunas + gerar hash": {
+      "main": [[{ "node": "Supabase Upsert — aquisicoes", "type": "main", "index": 0 }]]
+    },
+    "Supabase Upsert — aquisicoes": {
+      "main": [[{ "node": "Preparar sync_log", "type": "main", "index": 0 }]]
+    },
+    "Preparar sync_log": {
+      "main": [[{ "node": "INSERT sync_log", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "none"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURAÇÃO NECESSÁRIA:\n1. Criar credential 'Google SA BID POA' (Service Account com acesso à planilha)\n2. Compartilhar planilha 1gaeY_iQFwYBB-byKFETBz54FcfRVm5mFvuMLfIR7E9Y com email da SA\n3. Definir variável de ambiente SUPABASE_SERVICE_ROLE_KEY no n8n\n4. Mapear colunas da aba BID para os campos do payload (seção 'Normalizar')\n5. Ativar workflow"
+  }
+}
