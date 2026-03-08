@@ -127,8 +127,29 @@ def import_pep(wb, versao: str, client) -> int:
 
 # ── PMR Outputs ─────────────────────────────────────────────────────────────
 
+def _comp_from_codigo(codigo: str) -> str:
+    """Deriva componente a partir do código do indicador (ex: '1.1' → 'C1')."""
+    if not codigo:
+        return ''
+    c = str(codigo).strip()
+    if c.startswith('R 1') or c.startswith('1'):
+        return 'C1'
+    if c.startswith('R 2') or c.startswith('2'):
+        return 'C2'
+    if c.startswith('3'):
+        return 'C3'
+    return 'Geral'
+
+
 def import_pmr_outputs(wb, client) -> int:
-    """Importa aba 'PMR-Outputs' para tabela pmr_outputs."""
+    """Importa aba 'PMR-Outputs' para tabela pmr_outputs.
+
+    Estrutura da planilha (20260306_Revisão_PEP_PMR_V2_PN.xlsx):
+      Cabeçalho: linha 4
+      Dados: linha 5 em diante
+      B(1)=codigo  C(2)=descricao  D(3)=unidade  E(4)=linha_base
+      H(7)=meta_ano1  M(12)=meta_fim_projeto  N(13)=meio_verificacao
+    """
     aba = None
     for name in wb.sheetnames:
         if "output" in name.lower():
@@ -139,21 +160,29 @@ def import_pmr_outputs(wb, client) -> int:
         return 0
 
     rows = []
-    for row in aba.iter_rows(min_row=2):
-        if not any(c.value for c in row[:6]):
+    for row in aba.iter_rows(min_row=5):           # dados a partir da linha 5
+        codigo = txt(row[1])
+        if not codigo:
             continue
-        meta = val(row[6]) or None
-        realizado = val(row[8])
-        pct = round((realizado / meta) * 100, 2) if meta and meta > 0 else 0.0
+        # Pular linhas de cabeçalho de componente (código sem ponto, ex: '1', '2', '3')
+        if codigo.isdigit():
+            continue
+        descricao = txt(row[2])
+        if not descricao:
+            continue
+        meta = val(row[12]) or None                # col M = meta fim do projeto
+        meta_periodo = val(row[7]) or None          # col H = meta ano 1
+        realizado = 0.0                             # campo preenchido manualmente
+        pct = 0.0
         rows.append({
-            "componente":    txt(row[0]),
-            "produto":       txt(row[1]),
-            "codigo":        txt(row[2]),
-            "descricao":     txt(row[3]),
-            "unidade":       txt(row[4]),
-            "linha_base":    val(row[5]) or None,
+            "componente":    _comp_from_codigo(codigo),
+            "produto":       descricao,
+            "codigo":        codigo,
+            "descricao":     descricao,
+            "unidade":       txt(row[3]),           # col D
+            "linha_base":    val(row[4]) or None,  # col E
             "meta_contrato": meta,
-            "meta_periodo":  val(row[7]) or None,
+            "meta_periodo":  meta_periodo,
             "realizado":     realizado,
             "pct_realizado": pct,
         })
@@ -169,7 +198,14 @@ def import_pmr_outputs(wb, client) -> int:
 # ── PMR Outcomes ─────────────────────────────────────────────────────────────
 
 def import_pmr_outcomes(wb, client) -> int:
-    """Importa aba 'PMR-Outcomes' para tabela pmr_outcomes."""
+    """Importa aba 'PMR-Outcomes' para tabela pmr_outcomes.
+
+    Estrutura da planilha (20260306_Revisão_PEP_PMR_V2_PN.xlsx):
+      Cabeçalho: linha 4
+      Dados: linha 6 em diante (linha 5 = Objetivo Geral sem código)
+      B(1)=codigo  D(3)=descricao(PT)  E(4)=unidade  F(5)=linha_base
+      H(7)=meta_ano1  M(12)=meta_fim_projeto  N(13)=fonte_dados
+    """
     aba = None
     for name in wb.sheetnames:
         if "outcome" in name.lower():
@@ -180,23 +216,32 @@ def import_pmr_outcomes(wb, client) -> int:
         return 0
 
     rows = []
-    for row in aba.iter_rows(min_row=2):
-        if not any(c.value for c in row[:5]):
+    for row in aba.iter_rows(min_row=6):           # dados a partir da linha 6
+        codigo = txt(row[1])
+        if not codigo:
             continue
-        meta_oc = val(row[6]) or None
-        realizado_oc = val(row[7])
-        pct_oc = round((realizado_oc / meta_oc) * 100, 2) if meta_oc and meta_oc > 0 else 0.0
+        descricao = txt(row[3])                     # col D = versão em português
+        if not descricao:
+            descricao = txt(row[2])                 # fallback: versão em espanhol (col C)
+        if not descricao:
+            continue
+        meta_oc = val(row[12]) or None              # col M = meta fim do projeto
+        linha_base_raw = row[5].value if len(row) > 5 else None
+        # linha_base pode ser número ou string como 'LB[1]'
+        linha_base = None
+        if isinstance(linha_base_raw, (int, float)):
+            linha_base = float(linha_base_raw)
         rows.append({
-            "componente":    txt(row[0]),
-            "objetivo":      txt(row[1]),
-            "codigo":        txt(row[2]),
-            "descricao":     txt(row[3]),
-            "unidade":       txt(row[4]),
-            "linha_base":    val(row[5]) or None,
+            "componente":    _comp_from_codigo(codigo),
+            "objetivo":      descricao,
+            "codigo":        codigo,
+            "descricao":     descricao,
+            "unidade":       txt(row[4]),           # col E
+            "linha_base":    linha_base,
             "meta_contrato": meta_oc,
-            "realizado":     realizado_oc,
-            "pct_realizado": pct_oc,
-            "fonte_dados":   txt(row[8]),
+            "realizado":     0.0,
+            "pct_realizado": 0.0,
+            "fonte_dados":   txt(row[13]) if len(row) > 13 else None,  # col N
         })
 
     if not rows:
