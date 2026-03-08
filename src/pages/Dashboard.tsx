@@ -1,13 +1,13 @@
 import { DollarSign, BarChart2, AlertTriangle, ListChecks, CheckSquare, Clock } from 'lucide-react'
 import { KPICard } from '@/components/dashboard/KPICard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { usePEPKPIs } from '@/lib/queries/pep'
+import { usePEPKPIs, usePEPChartData } from '@/lib/queries/pep'
 import { usePMRKPIs } from '@/lib/queries/pmr'
 import { useRiscoKPIs } from '@/lib/queries/risks'
 import { useAtividadeKPIs } from '@/lib/queries/activities'
 import { useNaoObjecaoKPIs } from '@/lib/queries/misc'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
 
 const USD = (v: number) =>
@@ -16,17 +16,12 @@ const USD = (v: number) =>
 const PCT = (v: number) => `${v.toFixed(1)}%`
 
 export default function Dashboard() {
-  const { data: pep, isLoading: pepLoading } = usePEPKPIs()
-  const { data: pmr, isLoading: pmrLoading } = usePMRKPIs()
-  const { data: riscos, isLoading: riscosLoading } = useRiscoKPIs()
-  const { data: atv, isLoading: atvLoading } = useAtividadeKPIs()
-  const { data: nob } = useNaoObjecaoKPIs()
-
-  const chartData = [
-    { name: 'C1 — Interoper.', bid: 27000000, local: 3000000 },
-    { name: 'C2 — Reabilitação', bid: 95000000, local: 35000000 },
-    { name: 'C3 — Admin', bid: 3200000, local: 800000 },
-  ]
+  const { data: pep, isLoading: pepLoading }       = usePEPKPIs()
+  const { data: chart, isLoading: chartLoading }    = usePEPChartData()
+  const { data: pmr, isLoading: pmrLoading }        = usePMRKPIs()
+  const { data: riscos, isLoading: riscosLoading }  = useRiscoKPIs()
+  const { data: atv, isLoading: atvLoading }        = useAtividadeKPIs()
+  const { data: nob }                               = useNaoObjecaoKPIs()
 
   return (
     <div className="space-y-6">
@@ -91,26 +86,32 @@ export default function Dashboard() {
 
       {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Budget by component */}
+        {/* Budget by component — dados reais do PEP RS (Supabase) */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Orçamento por Componente (US$)</CardTitle>
+            <CardTitle className="text-sm font-medium">Orçamento por Componente — US$ atual</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tickFormatter={(v) => `$${(v / 1e6).toFixed(0)}M`} tick={{ fontSize: 11 }} />
-                <Tooltip
-                  formatter={(v: number) => USD(v)}
-                  contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid hsl(var(--border))' }}
-                />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="bid" name="BID" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="local" name="Local" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {chartLoading ? (
+              <div className="h-60 bg-muted animate-pulse rounded" />
+            ) : chart && chart.length > 0 ? (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={chart} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <YAxis tickFormatter={(v) => `$${(v / 1e6).toFixed(0)}M`} tick={{ fontSize: 11 }} />
+                  <Tooltip
+                    formatter={(v: number) => USD(v)}
+                    contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid hsl(var(--border))' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar dataKey="bid"   name="BID"             fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="local" name="Local (contrapartida)" fill="hsl(var(--accent))"  radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-16">Sem dados de orçamento.</p>
+            )}
           </CardContent>
         </Card>
 
