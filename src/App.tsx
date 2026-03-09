@@ -13,6 +13,7 @@ import Risks from '@/pages/Risks'
 import Activities from '@/pages/Activities'
 import NoObjections from '@/pages/NoObjections'
 import Analysis from '@/pages/Analysis'
+import Inteligencia from '@/pages/Inteligencia'
 import Reports from '@/pages/Reports'
 import Settings from '@/pages/Settings'
 import Marcos from '@/pages/Marcos'
@@ -42,6 +43,7 @@ export default function App() {
               <Route path="atividades" element={<Activities />} />
               <Route path="nao-objecoes" element={<NoObjections />} />
               <Route path="analise" element={<Analysis />} />
+              <Route path="inteligencia" element={<Inteligencia />} />
               <Route path="relatorios" element={<Reports />} />
               <Route path="configuracoes" element={<Settings />} />
               <Route path="marcos" element={<Marcos />} />

@@ -1,7 +1,8 @@
-import { Building2, Calendar, DollarSign, FileText, Users2 } from 'lucide-react'
+import { Calendar, DollarSign, FileText, Users2, ExternalLink } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useProgramaContextoKPIs } from '@/lib/queries/contexto'
 
 const PROGRAMA = {
   nome: 'POA+SOCIAL',
@@ -55,6 +56,7 @@ const BRL = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v)
 
 export default function ProgramProfile() {
+  const { data: kpis, isLoading: kpisLoading } = useProgramaContextoKPIs()
   const totalUSD = PROGRAMA.valorBID + PROGRAMA.valorLocal
   const totalBRL = totalUSD * PROGRAMA.cambio
 
@@ -165,25 +167,67 @@ export default function ProgramProfile() {
       {/* Contexto Social */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Contexto Social — Porto Alegre</CardTitle>
+          <CardTitle className="text-sm flex items-center justify-between">
+            <span>Contexto Social — Porto Alegre</span>
+            <a
+              href="https://dvqnlnxkwcrxbctujajl.supabase.co/project/default/editor"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-muted-foreground font-normal flex items-center gap-1 hover:text-primary"
+            >
+              <ExternalLink className="w-3 h-3" /> Supabase
+            </a>
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {[
-              { label: 'Famílias em pobreza extrema', value: '64.395', sub: '~13% da população' },
-              { label: 'Moradores de rua', value: '3.368', sub: '+59,2% entre 2016-2020' },
-              { label: 'Crianças fora da escola', value: '6.749', sub: '7-17 anos (SMED 2021)' },
-              { label: 'Jovens nem-nem', value: '8,7%', sub: 'Não estudam, não trabalham' },
-              { label: 'Valor total do programa', value: 'US$ 161M', sub: 'BID + Contrapartida local' },
-              { label: 'Prazo de execução', value: '5 anos', sub: 'Início: Dez/2024' },
-            ].map(item => (
-              <div key={item.label} className="bg-muted/30 rounded-lg p-3">
-                <p className="text-[10px] text-muted-foreground">{item.label}</p>
-                <p className="text-lg font-bold text-primary mt-0.5">{item.value}</p>
-                <p className="text-[10px] text-muted-foreground">{item.sub}</p>
-              </div>
-            ))}
-          </div>
+          {kpisLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 rounded-lg" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {[
+                {
+                  label: kpis?.pobrezaExtrema?.indicador ?? 'Famílias em pobreza extrema',
+                  value: kpis?.pobrezaExtrema?.valor_texto ?? kpis?.pobrezaExtrema?.valor?.toLocaleString('pt-BR') ?? '64.395',
+                  sub: kpis?.pobrezaExtrema?.unidade ?? '~13% da população',
+                },
+                {
+                  label: kpis?.moradoresRua?.indicador ?? 'Moradores de rua',
+                  value: kpis?.moradoresRua?.valor_texto ?? kpis?.moradoresRua?.valor?.toLocaleString('pt-BR') ?? '3.368',
+                  sub: kpis?.moradoresRua?.unidade ?? '+59,2% entre 2016-2020',
+                },
+                {
+                  label: kpis?.criancasFora?.indicador ?? 'Crianças fora da escola',
+                  value: kpis?.criancasFora?.valor_texto ?? kpis?.criancasFora?.valor?.toLocaleString('pt-BR') ?? '6.749',
+                  sub: kpis?.criancasFora?.unidade ?? '7-17 anos (SMED 2021)',
+                },
+                {
+                  label: kpis?.jovensNemNem?.indicador ?? 'Jovens nem-nem',
+                  value: kpis?.jovensNemNem?.valor_texto ?? (kpis?.jovensNemNem?.valor != null ? `${kpis.jovensNemNem.valor}%` : '8,7%'),
+                  sub: kpis?.jovensNemNem?.unidade ?? 'Não estudam, não trabalham',
+                },
+                {
+                  label: kpis?.valorPrograma?.indicador ?? 'Valor total do programa',
+                  value: kpis?.valorPrograma?.valor_texto ?? 'US$ 161M',
+                  sub: kpis?.valorPrograma?.unidade ?? 'BID + Contrapartida local',
+                },
+                {
+                  label: kpis?.prazoExecucao?.indicador ?? 'Prazo de execução',
+                  value: kpis?.prazoExecucao?.valor_texto ?? '5 anos',
+                  sub: kpis?.prazoExecucao?.unidade ?? 'Início: Dez/2024',
+                },
+              ].map(item => (
+                <div key={item.label} className="bg-muted/30 rounded-lg p-3">
+                  <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                  <p className="text-lg font-bold text-primary mt-0.5">{item.value}</p>
+                  <p className="text-[10px] text-muted-foreground">{item.sub}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
