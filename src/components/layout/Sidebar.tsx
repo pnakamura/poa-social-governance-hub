@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Building2, FileSpreadsheet, BarChart3,
   AlertTriangle, ListChecks, MessageSquareWarning,
   FileText, Settings, ChevronLeft, ChevronRight, TrendingUp,
-  CheckSquare, Calendar, AlertOctagon, ShoppingCart, Tag, Brain,
+  CheckSquare, Calendar, AlertOctagon, ShoppingCart, Tag, Brain, Radar,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SyncStatusBadge } from '@/components/SyncStatusBadge'
@@ -35,6 +35,7 @@ const NAV_GROUPS = [
   {
     label: 'Análise',
     items: [
+      { to: '/monitoramento', icon: Radar, label: 'Monitoramento' },
       { to: '/inteligencia', icon: Brain, label: 'Inteligência' },
       { to: '/analise', icon: MessageSquareWarning, label: 'Análise Crítica' },
       { to: '/relatorios', icon: FileText, label: 'Relatórios' },

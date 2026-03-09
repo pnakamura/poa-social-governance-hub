@@ -1,4 +1,5 @@
 import { DollarSign, BarChart2, AlertTriangle, CheckSquare, Clock, Calendar, MapPin } from 'lucide-react'
+import { HelpTooltip } from '@/components/HelpTooltip'
 import { KPICard } from '@/components/dashboard/KPICard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -119,7 +120,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Orçamento por Componente — BID vs Contrapartida</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-1.5">Orçamento por Componente — BID vs Contrapartida <HelpTooltip id="chart-orcamento" /></CardTitle>
           </CardHeader>
           <CardContent>
             {chartLoading ? <Skeleton className="h-52 w-full" /> : chart?.length ? (
@@ -140,7 +141,7 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">PEP — BID Atual vs BID Arranque (base)</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-1.5">PEP — BID Atual vs BID Arranque (base) <HelpTooltip id="pep-hierarquia" /></CardTitle>
           </CardHeader>
           <CardContent>
             {chartLoading ? <Skeleton className="h-52 w-full" /> : chart?.length ? (
@@ -165,7 +166,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">PMR — % Realizado por Componente</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-1.5">PMR — % Realizado por Componente <HelpTooltip id="chart-execucao-pmr" /></CardTitle>
           </CardHeader>
           <CardContent>
             {pmrPorComp.length > 0 ? (
@@ -184,7 +185,7 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Status das Atividades</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-1.5">Status das Atividades <HelpTooltip id="chart-atividades" /></CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4 mt-2">
@@ -213,7 +214,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Perfil de Riscos Ativos</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-1.5">Perfil de Riscos Ativos <HelpTooltip id="matriz-riscos" /></CardTitle>
           </CardHeader>
           <CardContent>
             {riscosLoading ? (
@@ -243,7 +244,7 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Riscos por Categoria</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-1.5">Riscos por Categoria <HelpTooltip id="chart-riscos" /></CardTitle>
           </CardHeader>
           <CardContent>
             {riscosPorCat.length > 0 ? (
@@ -266,7 +267,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Aquisições por Status</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-1.5">Aquisições por Status <HelpTooltip id="chart-aquisicoes-status" /></CardTitle>
           </CardHeader>
           <CardContent>
             {aquisicoesPorStatus.length > 0 ? (
@@ -285,7 +286,7 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Pontos de Atenção — por Área e Criticidade</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-1.5">Pontos de Atenção — por Área e Criticidade <HelpTooltip id="chart-pontos-atencao" /></CardTitle>
           </CardHeader>
           <CardContent>
             {pontosPorArea.length > 0 ? (

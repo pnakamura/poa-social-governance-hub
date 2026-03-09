@@ -2,42 +2,48 @@ import { Calendar, DollarSign, FileText, Users2, ExternalLink } from 'lucide-rea
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { HelpTooltip } from '@/components/HelpTooltip'
 import { useProgramaContextoKPIs } from '@/lib/queries/contexto'
 
 const PROGRAMA = {
   nome: 'POA+SOCIAL',
   contrato: '5750-OC / BR-L1597',
-  valorBID: 132_000_000,
-  valorLocal: 33_000_000,
+  valorBID: 128_800_000,
+  valorLocal: 32_200_000,
   cambio: 5.50,
-  inicio: '2024-01-01',
-  fim: '2028-12-31',
+  inicio: '2024-12-01',
+  fim: '2029-12-31',
   status: 'Em execução',
   objetivos: [
     {
       titulo: 'Melhorar serviços urbanos integrados',
-      descricao: 'Ampliar a capacidade de gestão integrada de dados urbanos pela PMPA via plataforma de interoperabilidade.',
+      descricao: 'Ampliar a capacidade de gestão integrada de dados urbanos pela PMPA via plataforma de interoperabilidade (InterPOA).',
     },
     {
       titulo: 'Reabilitar infraestrutura social',
-      descricao: 'Recuperar equipamentos de saúde, educação, esporte e assistência social em áreas vulneráveis.',
+      descricao: 'Recuperar e melhorar equipamentos de saúde, educação, assistência social e desenvolvimento social em áreas vulneráveis.',
     },
     {
       titulo: 'Fortalecer capacidade institucional',
-      descricao: 'Aprimorar os processos de gestão, monitoramento e avaliação da SMPG e órgãos executores.',
+      descricao: 'Aprimorar os processos de gestão, monitoramento e avaliação da SMPG, UGP e Unidades de Ligação (UL).',
     },
     {
       titulo: 'Promover sustentabilidade social',
-      descricao: 'Garantir impacto duradouro nas comunidades beneficiadas por meio de indicadores mensuráveis.',
+      descricao: 'Garantir impacto duradouro nas comunidades beneficiadas por meio de indicadores mensuráveis do PMR.',
     },
   ],
   executores: [
-    { sigla: 'SMPG', nome: 'Secretaria Municipal de Planejamento e Gestão', papel: 'Coordenação geral (UGP)' },
-    { sigla: 'SMOI', nome: 'Secretaria Municipal de Obras e Infraestrutura', papel: 'Obras de reabilitação' },
-    { sigla: 'ASD', nome: 'Agência de Desenvolvimento de Porto Alegre', papel: 'Interoperabilidade' },
-    { sigla: 'SMS', nome: 'Secretaria Municipal de Saúde', papel: 'Equipamentos de saúde' },
-    { sigla: 'SMAS', nome: 'Secretaria Municipal de Assistência Social', papel: 'Centros sociais' },
-    { sigla: 'SMED', nome: 'Secretaria Municipal de Educação', papel: 'Escolas e creches' },
+    { sigla: 'SMPG', nome: 'Secretaria Municipal de Planejamento e Gestão', papel: 'Órgão Executor — coordena a UGP e o DPF' },
+    { sigla: 'DPF', nome: 'Diretoria de Programas de Financiamento', papel: 'Gestão técnica do contrato 5750-OC' },
+    { sigla: 'SMS', nome: 'Secretaria Municipal de Saúde', papel: 'UL SMS — Rede de Atenção à Saúde (C2, US$47M)' },
+    { sigla: 'SMAS', nome: 'Secretaria Municipal de Assistência Social', papel: 'UL SMAS — Rede de Proteção Social (C2, US$38M)' },
+    { sigla: 'SMED', nome: 'Secretaria Municipal de Educação', papel: 'UL SMED — Rede de Educação Pública (C2, US$31M)' },
+    { sigla: 'SMID', nome: 'Secretaria Municipal de Inovação e Desenvolvimento', papel: 'UL SMID — Rede de Desenvolvimento Social (C2, US$14M)' },
+  ],
+  componentes: [
+    { codigo: 'C1', titulo: 'Transformação Digital e Interoperabilidade', valorUSD: 27_000_000, pct: 16.8 },
+    { codigo: 'C2', titulo: 'Reabilitação e Melhoria de Infraestrutura Social', valorUSD: 130_000_000, pct: 80.7 },
+    { codigo: 'ADM', titulo: 'Administração, Supervisão e Avaliação', valorUSD: 4_000_000, pct: 2.5 },
   ],
   documentos: [
     { nome: 'Contrato de Empréstimo 5750-OC', tipo: 'Contrato', data: '2024-01-15' },
@@ -135,32 +141,73 @@ export default function ProgramProfile() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2">
             <Users2 className="w-4 h-4" /> Estrutura Organizacional
+            <HelpTooltip id="programa-ugp" />
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center gap-0 text-xs">
             {/* Nível 1 */}
-            <div className="bg-primary text-white rounded-lg px-4 py-2 font-semibold text-center">PMPA</div>
+            <div className="bg-primary text-white rounded-lg px-4 py-2 font-semibold text-center">PMPA — Prefeitura Municipal de Porto Alegre</div>
             <div className="w-px h-4 bg-border" />
             {/* Nível 2 */}
-            <div className="bg-primary/80 text-white rounded-lg px-4 py-2 font-semibold text-center">SMPG</div>
+            <div className="bg-primary/80 text-white rounded-lg px-4 py-2 font-semibold text-center">
+              SMPG — Secretaria Municipal de Planejamento e Gestão
+              <span className="block text-[10px] font-normal text-white/70">(Órgão Executor)</span>
+            </div>
             <div className="w-px h-4 bg-border" />
             {/* Nível 3 */}
-            <div className="bg-primary/60 text-white rounded-lg px-4 py-2 font-semibold text-center">DPF — Departamento de Projetos e Financiamentos</div>
+            <div className="bg-primary/60 text-white rounded-lg px-4 py-2 font-semibold text-center">
+              DPF — Diretoria de Programas de Financiamento
+            </div>
             <div className="w-px h-4 bg-border" />
             {/* Nível 4 */}
-            <div className="bg-primary/40 text-white rounded-lg px-4 py-2 font-semibold text-center">UGP — Unidade de Gerenciamento do Programa</div>
+            <div className="bg-primary/40 text-white rounded-lg px-4 py-2 font-semibold text-center">
+              UGP — Unidade de Gestão do Programa
+            </div>
             <div className="w-px h-4 bg-border" />
-            {/* Nível 5 — ULPs */}
-            <p className="text-[10px] text-muted-foreground mb-1">Unidades de Licitação e Programação (ULPs)</p>
+            {/* Nível 5 — ULs */}
+            <div className="flex items-center gap-1 mb-1">
+              <p className="text-[10px] text-muted-foreground">Unidade de Ligação (UL) — por secretaria executora</p>
+              <HelpTooltip id="programa-ul" />
+            </div>
             <div className="flex gap-2 flex-wrap justify-center">
-              {['SMS', 'SMAS', 'SMED', 'SMID', 'PROCEMPA', 'DEMHAB'].map(ulp => (
-                <div key={ulp} className="bg-muted rounded-md px-3 py-1.5 text-xs font-medium border border-border">
-                  {ulp}
+              {['UL SMS', 'UL SMAS', 'UL SMED', 'UL SMID'].map(ul => (
+                <div key={ul} className="bg-muted rounded-md px-3 py-1.5 text-xs font-medium border border-border">
+                  {ul}
                 </div>
               ))}
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Componentes */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            Componentes do Programa
+            <HelpTooltip id="programa-componentes" />
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {PROGRAMA.componentes.map((c) => (
+            <div key={c.codigo} className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary text-xs font-bold flex items-center justify-center flex-shrink-0">
+                {c.codigo}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">{c.titulo}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-primary rounded-full" style={{ width: `${c.pct}%` }} />
+                  </div>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    {USD(c.valorUSD)} ({c.pct}%)
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
 

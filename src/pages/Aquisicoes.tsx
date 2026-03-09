@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ShoppingCart, Filter, DollarSign } from 'lucide-react'
+import { HelpTooltip } from '@/components/HelpTooltip'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -52,7 +53,10 @@ export default function Aquisicoes() {
       <div className="gradient-bid rounded-xl p-6 text-white">
         <div className="flex items-center gap-3 mb-4">
           <ShoppingCart className="w-6 h-6" />
-          <h1 className="text-2xl font-bold">Plano de Aquisições</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">Plano de Aquisições</h1>
+            <HelpTooltip id="plano-aquisicoes" />
+          </div>
         </div>
         <p className="text-white/70 text-sm mb-4">Processos licitatórios do programa BR-L1597</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

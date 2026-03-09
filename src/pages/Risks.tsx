@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react'
+import { HelpTooltip } from '@/components/HelpTooltip'
 import { useRiscos, useCreateRisco, useUpdateRisco, useDeleteRisco } from '@/lib/queries/risks'
 import { type Risco } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -64,7 +65,10 @@ export default function Risks() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Matriz de Riscos</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">Matriz de Riscos</h1>
+            <HelpTooltip id="matriz-riscos" />
+          </div>
           <p className="text-sm text-muted-foreground mt-0.5">Registro e monitoramento de riscos do programa</p>
         </div>
         <Button onClick={openNew} className="gap-2">

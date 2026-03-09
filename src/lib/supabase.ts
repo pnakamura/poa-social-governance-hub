@@ -199,3 +199,12 @@ export type ProgramaContexto = {
   notas: string | null
   created_at: string
 }
+
+export type TemaMonitoramento = {
+  id: string
+  nome: string
+  descricao: string | null
+  palavras_chave: string[]
+  ativo: boolean
+  criado_em: string
+}

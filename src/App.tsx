@@ -20,6 +20,7 @@ import Marcos from '@/pages/Marcos'
 import PontosAtencao from '@/pages/PontosAtencao'
 import Aquisicoes from '@/pages/Aquisicoes'
 import Temas from '@/pages/Temas'
+import Monitoramento from '@/pages/Monitoramento'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,6 +51,7 @@ export default function App() {
               <Route path="pontos-atencao" element={<PontosAtencao />} />
               <Route path="aquisicoes" element={<Aquisicoes />} />
               <Route path="temas" element={<Temas />} />
+              <Route path="monitoramento" element={<Monitoramento />} />
               <Route path="*" element={
                 <div className="flex flex-col items-center justify-center h-64 gap-2">
                   <p className="text-3xl font-bold text-muted-foreground">404</p>

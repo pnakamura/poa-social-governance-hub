@@ -18,7 +18,12 @@ const BREADCRUMBS: Record<string, string[]> = {
   '/atividades': ['Atividades'],
   '/nao-objecoes': ['BID', 'Não-Objeções'],
   '/analise': ['Análise Crítica'],
+  '/monitoramento': ['Análise', 'Monitoramento de Temas'],
   '/inteligencia': ['Análise', 'Inteligência Analítica'],
+  '/marcos': ['Operacional', 'Timeline de Marcos'],
+  '/pontos-atencao': ['Operacional', 'Pontos de Atenção'],
+  '/aquisicoes': ['Aquisições / PMR', 'Plano de Aquisições'],
+  '/temas': ['Operacional', 'Temas Estratégicos'],
   '/relatorios': ['Relatórios'],
   '/configuracoes': ['Configurações'],
 }

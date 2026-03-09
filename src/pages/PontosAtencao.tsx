@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { AlertTriangle, Filter, User, Clock } from 'lucide-react'
+import { HelpTooltip } from '@/components/HelpTooltip'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -46,7 +47,10 @@ export default function PontosAtencao() {
       <div className="gradient-bid rounded-xl p-6 text-white">
         <div className="flex items-center gap-3 mb-4">
           <AlertTriangle className="w-6 h-6" />
-          <h1 className="text-2xl font-bold">Pontos de Atenção</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">Pontos de Atenção</h1>
+            <HelpTooltip id="pontos-atencao-semaforo" />
+          </div>
         </div>
         <p className="text-white/70 text-sm mb-4">Semáforo institucional de riscos e pendências do programa BR-L1597</p>
         <div className="grid grid-cols-3 gap-4">

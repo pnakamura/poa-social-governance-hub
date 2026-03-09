@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Plus, ListChecks } from 'lucide-react'
+import { HelpTooltip } from '@/components/HelpTooltip'
 import { useAtividades, useUpdateAtividadeStatus, useCreateAtividade, useDeleteAtividade } from '@/lib/queries/activities'
 import { type Atividade } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -51,7 +52,10 @@ export default function Activities() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Atividades</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">Atividades</h1>
+            <HelpTooltip id="kanban-atividades" />
+          </div>
           <p className="text-sm text-muted-foreground mt-0.5">Painel Kanban de acompanhamento de tarefas</p>
         </div>
         <Button onClick={() => setDialogOpen(true)} className="gap-2">
