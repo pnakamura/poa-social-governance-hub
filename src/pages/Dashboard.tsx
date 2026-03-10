@@ -1,5 +1,8 @@
-import { DollarSign, BarChart2, AlertTriangle, CheckSquare, Clock, Calendar, MapPin } from 'lucide-react'
+import { DollarSign, BarChart2, AlertTriangle, CheckSquare, Clock, Calendar, MapPin, ShieldCheck } from 'lucide-react'
 import { HelpTooltip } from '@/components/HelpTooltip'
+import { Link } from 'react-router-dom'
+import { useSyncLog } from '@/hooks/useSyncLog'
+import { differenceInHours } from 'date-fns'
 import { KPICard } from '@/components/dashboard/KPICard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -39,6 +42,52 @@ function SectionDivider({ title }: { title: string }) {
     </div>
   )
 }
+
+// ─── DataFreshnessBar ────────────────────────────────────────────────────────
+
+const FONTES_MONITORADAS = [
+  { label: 'Aquisições', tabela: 'aquisicoes' },
+  { label: 'PEP', tabela: 'pep_entries' },
+  { label: 'PMR', tabela: 'pmr_outputs' },
+]
+
+function DataFreshnessBar() {
+  const { data: logs } = useSyncLog(20)
+
+  const statuses = FONTES_MONITORADAS.map(({ label, tabela }) => {
+    const last = logs?.find(l => l.tabela_destino === tabela)?.executado_em
+    const hours = last ? differenceInHours(new Date(), new Date(last)) : null
+    const status = hours === null ? 'desconhecido' : hours <= 24 ? 'ok' : hours <= 72 ? 'alerta' : 'critico'
+    const color = status === 'ok' ? 'bg-green-500' : status === 'alerta' ? 'bg-yellow-400' : status === 'critico' ? 'bg-red-500' : 'bg-muted-foreground/40'
+    const label2 = hours === null ? 'sem dados' : hours <= 24 ? `${hours}h atrás` : `${Math.floor(hours / 24)}d atrás`
+    return { label, status, color, label2 }
+  })
+
+  const anyStale = statuses.some(s => s.status === 'critico' || s.status === 'alerta')
+
+  return (
+    <Link to="/qualidade-dados" className="block">
+      <div className={`flex items-center gap-3 px-4 py-2 rounded-lg border text-xs transition-colors hover:bg-muted/60 ${anyStale ? 'bg-yellow-50 border-yellow-200' : 'bg-muted/30 border-border'}`}>
+        <ShieldCheck className={`w-3.5 h-3.5 shrink-0 ${anyStale ? 'text-yellow-600' : 'text-green-600'}`} />
+        <span className="text-muted-foreground font-medium shrink-0">Fontes:</span>
+        <div className="flex items-center gap-3 flex-wrap flex-1">
+          {statuses.map(s => (
+            <div key={s.label} className="flex items-center gap-1.5">
+              <div className={`w-2 h-2 rounded-full ${s.color}`} />
+              <span className="text-muted-foreground">{s.label}</span>
+              <span className={s.status === 'critico' ? 'text-red-600 font-medium' : s.status === 'alerta' ? 'text-yellow-700' : 'text-green-700'}>
+                {s.label2}
+              </span>
+            </div>
+          ))}
+        </div>
+        <span className="text-muted-foreground shrink-0">Ver detalhes →</span>
+      </div>
+    </Link>
+  )
+}
+
+// ─── Dashboard ───────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
   const { data: pep, isLoading: pepLoading }       = usePEPKPIs()
@@ -104,6 +153,9 @@ export default function Dashboard() {
         <h1 className="text-2xl font-bold">Dashboard Executivo</h1>
         <p className="text-sm text-muted-foreground mt-0.5">POA+SOCIAL BID — Contrato 5750-OC / BR-L1597</p>
       </div>
+
+      {/* Freshness bar */}
+      <DataFreshnessBar />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">

@@ -24,8 +24,9 @@ const BREADCRUMBS: Record<string, string[]> = {
   '/pontos-atencao': ['Operacional', 'Pontos de Atenção'],
   '/aquisicoes': ['Aquisições / PMR', 'Plano de Aquisições'],
   '/temas': ['Operacional', 'Temas Estratégicos'],
-  '/relatorios': ['Relatórios'],
-  '/configuracoes': ['Configurações'],
+  '/qualidade-dados': ['Análise', 'Qualidade de Dados'],
+  '/relatorios': ['Saída', 'Relatórios'],
+  '/configuracoes': ['Saída', 'Configurações'],
 }
 
 export function Topbar() {

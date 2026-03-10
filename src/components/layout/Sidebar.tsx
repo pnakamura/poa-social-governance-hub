@@ -5,45 +5,52 @@ import {
   AlertTriangle, ListChecks, MessageSquareWarning,
   FileText, Settings, ChevronLeft, ChevronRight, TrendingUp,
   CheckSquare, Calendar, AlertOctagon, ShoppingCart, Tag, Brain, Radar,
+  ShieldCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SyncStatusBadge } from '@/components/SyncStatusBadge'
 
 const NAV_GROUPS = [
   {
-    label: 'Operacional',
+    label: 'Visão Geral',
     items: [
       { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
       { to: '/programa', icon: Building2, label: 'Programa' },
-      { to: '/temas', icon: Tag, label: 'Temas' },
-      { to: '/marcos', icon: Calendar, label: 'Timeline' },
-      { to: '/pontos-atencao', icon: AlertOctagon, label: 'Pontos de Atenção' },
-      { to: '/atividades', icon: ListChecks, label: 'Atividades' },
-      { to: '/riscos', icon: AlertTriangle, label: 'Riscos' },
     ],
   },
   {
-    label: 'Aquisições / PMR',
+    label: 'Fontes de Dados',
     items: [
-      { to: '/aquisicoes', icon: ShoppingCart, label: 'Aquisições' },
       { to: '/pep', icon: FileSpreadsheet, label: 'PEP RS' },
       { to: '/pmr/outputs', icon: BarChart3, label: 'PMR — Outputs' },
       { to: '/pmr/outcomes', icon: TrendingUp, label: 'PMR — Outcomes' },
+      { to: '/aquisicoes', icon: ShoppingCart, label: 'Aquisições' },
       { to: '/nao-objecoes', icon: CheckSquare, label: 'Não-Objeções' },
+    ],
+  },
+  {
+    label: 'Acompanhamento',
+    items: [
+      { to: '/marcos', icon: Calendar, label: 'Timeline' },
+      { to: '/atividades', icon: ListChecks, label: 'Atividades' },
+      { to: '/riscos', icon: AlertTriangle, label: 'Riscos' },
+      { to: '/pontos-atencao', icon: AlertOctagon, label: 'Pontos de Atenção' },
+      { to: '/temas', icon: Tag, label: 'Temas' },
     ],
   },
   {
     label: 'Análise',
     items: [
+      { to: '/qualidade-dados', icon: ShieldCheck, label: 'Qualidade de Dados' },
       { to: '/monitoramento', icon: Radar, label: 'Monitoramento' },
       { to: '/inteligencia', icon: Brain, label: 'Inteligência' },
       { to: '/analise', icon: MessageSquareWarning, label: 'Análise Crítica' },
-      { to: '/relatorios', icon: FileText, label: 'Relatórios' },
     ],
   },
   {
-    label: 'Admin',
+    label: 'Saída',
     items: [
+      { to: '/relatorios', icon: FileText, label: 'Relatórios' },
       { to: '/configuracoes', icon: Settings, label: 'Configurações' },
     ],
   },
