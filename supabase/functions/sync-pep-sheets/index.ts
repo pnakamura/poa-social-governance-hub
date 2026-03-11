@@ -53,15 +53,32 @@ function parseCSV(text: string): string[][] {
   return rows;
 }
 
+function normalizeBrNum(v: string): string {
+  let s = v.replace(/[^\d.,-]/g, "").trim();
+  if (!s) return "";
+  const lastComma = s.lastIndexOf(",");
+  const lastDot = s.lastIndexOf(".");
+  if (lastComma > lastDot) {
+    s = s.replace(/\./g, "").replace(",", ".");
+  } else if (lastDot > lastComma) {
+    s = s.replace(/,/g, "");
+  } else {
+    s = s.replace(/,/g, "");
+  }
+  return s;
+}
+
 function num(v: string): number {
   if (!v) return 0;
-  const n = Number(v.replace(/[^\d.\-]/g, ""));
+  const n = Number(normalizeBrNum(v));
   return isNaN(n) ? 0 : n;
 }
 
 function numOrNull(v: string): number | null {
   if (!v) return null;
-  const n = Number(v.replace(/[^\d.\-]/g, ""));
+  const s = normalizeBrNum(v);
+  if (!s) return null;
+  const n = Number(s);
   return isNaN(n) || n === 0 ? null : n;
 }
 
