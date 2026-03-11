@@ -155,7 +155,7 @@ export default function PEPDetalhePage() {
 
   // ─── Riscos do Item ──────────────────────────────────────────────
   const [showRiscoForm, setShowRiscoForm] = useState(false)
-  const [riscoForm, setRiscoForm] = useState({ descricao: '', probabilidade: 'Média', impacto: 'Médio', mitigacao: '' })
+  const [riscoForm, setRiscoForm] = useState({ titulo_risco: '', probabilidade: 'Média', impacto: 'Médio', mitigacao: '' })
   const [vinculandoRisco, setVinculandoRisco] = useState(false)
   const [riscoGlobalSearch, setRiscoGlobalSearch] = useState('')
 

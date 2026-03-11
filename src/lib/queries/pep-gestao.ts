@@ -27,7 +27,7 @@ export interface PepRisco {
   id: string
   pep_entry_id: string
   risco_global_id: string | null
-  descricao: string
+  titulo_risco: string
   probabilidade: string
   impacto: string
   mitigacao: string | null
