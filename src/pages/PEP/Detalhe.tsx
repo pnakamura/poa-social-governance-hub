@@ -305,74 +305,66 @@ export default function PEPDetalhePage() {
 
       {/* ─── Hero Image + Descrição ─────────────────────────────── */}
       <Card className="overflow-hidden">
-        <div className="relative group">
-          {heroImage ? (
-            <img
-              src={heroImage}
-              alt={entry.descricao ?? 'Imagem do item PEP'}
-              className="w-full h-48 sm:h-56 object-cover"
-            />
-          ) : (
-            <div className="w-full h-48 sm:h-56 bg-muted/30 flex items-center justify-center">
-              <img src={logoPoaSocial} alt="POA+ Social" className="h-28 opacity-60" />
-            </div>
-          )}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-            <Button
-              variant="secondary"
-              size="sm"
-              className="shadow-lg"
-              onClick={() => heroInputRef.current?.click()}
-            >
-              <Camera className="w-4 h-4 mr-1" />
-              {heroImage ? 'Trocar imagem' : 'Adicionar imagem'}
-            </Button>
-            {heroImage && (
-              <Button
-                variant="destructive"
-                size="sm"
-                className="shadow-lg ml-2"
-                onClick={handleRemoveHero}
-              >
-                <Trash2 className="w-4 h-4 mr-1" />
-                Remover
-              </Button>
-            )}
-          </div>
-          <input
-            ref={heroInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => handleHeroUpload(e.target.files)}
-          />
-        </div>
-        <CardContent className="pt-4 pb-4">
-          {editingDescricao ? (
-            <div className="flex gap-2">
-              <Textarea
-                value={descricaoEdit}
-                onChange={(e) => setDescricaoEdit(e.target.value)}
-                placeholder="Descreva o que se trata este item..."
-                className="min-h-[80px] flex-1"
+        <div className="flex flex-col sm:flex-row">
+          {/* Image — 1/4 width */}
+          <div className="relative group sm:w-1/4 flex-shrink-0">
+            {heroImage ? (
+              <img
+                src={heroImage}
+                alt={entry.descricao ?? 'Imagem do item PEP'}
+                className="w-full h-48 sm:h-full object-cover"
               />
+            ) : (
+              <div className="w-full h-48 sm:h-full min-h-[160px] bg-muted/30 flex items-center justify-center">
+                <img src={logoPoaSocial} alt="POA+ Social" className="h-20 opacity-60" />
+              </div>
+            )}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
               <div className="flex flex-col gap-1">
-                <Button size="sm" onClick={handleSaveDescricao}><Save className="w-4 h-4" /></Button>
-                <Button size="sm" variant="ghost" onClick={() => setEditingDescricao(false)}><X className="w-4 h-4" /></Button>
+                <Button variant="secondary" size="sm" className="shadow-lg" onClick={() => heroInputRef.current?.click()}>
+                  <Camera className="w-4 h-4 mr-1" />
+                  {heroImage ? 'Trocar' : 'Adicionar'}
+                </Button>
+                {heroImage && (
+                  <Button variant="destructive" size="sm" className="shadow-lg" onClick={handleRemoveHero}>
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    Remover
+                  </Button>
+                )}
               </div>
             </div>
-          ) : (
-            <div
-              className="cursor-pointer hover:bg-muted/50 rounded-md p-2 -m-2 transition-colors group/desc"
-              onClick={() => { setDescricaoEdit(entry.descricao ?? ''); setEditingDescricao(true) }}
-            >
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {entry.descricao || <span className="italic">Clique para adicionar uma descrição...</span>}
-              </p>
-              <span className="text-[10px] text-muted-foreground/50 opacity-0 group-hover/desc:opacity-100 transition-opacity">Clique para editar</span>
-            </div>
-          )}
-        </CardContent>
+            <input ref={heroInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleHeroUpload(e.target.files)} />
+          </div>
+
+          {/* Description — 3/4 width */}
+          <div className="sm:w-3/4 p-5 flex flex-col justify-center">
+            <p className="text-xs font-medium text-muted-foreground mb-2">Descrição do Item</p>
+            {editingDescricao ? (
+              <div className="flex gap-2">
+                <Textarea
+                  value={descricaoEdit}
+                  onChange={(e) => setDescricaoEdit(e.target.value)}
+                  placeholder="Descreva o que se trata este item..."
+                  className="min-h-[100px] flex-1"
+                />
+                <div className="flex flex-col gap-1">
+                  <Button size="sm" onClick={handleSaveDescricao}><Save className="w-4 h-4" /></Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditingDescricao(false)}><X className="w-4 h-4" /></Button>
+                </div>
+              </div>
+            ) : (
+              <div
+                className="cursor-pointer hover:bg-muted/50 rounded-md p-2 -m-2 transition-colors group/desc"
+                onClick={() => { setDescricaoEdit(entry.descricao ?? ''); setEditingDescricao(true) }}
+              >
+                <p className="text-sm text-foreground leading-relaxed">
+                  {entry.descricao || <span className="italic text-muted-foreground">Clique para adicionar uma descrição...</span>}
+                </p>
+                <span className="text-[10px] text-muted-foreground/50 opacity-0 group-hover/desc:opacity-100 transition-opacity mt-1 block">Clique para editar</span>
+              </div>
+            )}
+          </div>
+        </div>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
