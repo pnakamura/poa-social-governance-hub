@@ -192,6 +192,60 @@ export default function PEPDetalhePage() {
   // Lightbox
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
 
+  // Hero image (stored in storage bucket under wbs/_hero)
+  const heroInputRef = useRef<HTMLInputElement>(null)
+  const [heroImage, setHeroImage] = useState<string | null>(null)
+  const [editingDescricao, setEditingDescricao] = useState(false)
+  const [descricaoEdit, setDescricaoEdit] = useState('')
+
+  // Load hero image on mount
+  const heroLoaded = useRef(false)
+  useMemo(() => {
+    if (!decodedWbs || heroLoaded.current) return
+    heroLoaded.current = true
+    supabase.storage.from('pep-evidencias').list(`${decodedWbs}/_hero`).then(({ data }) => {
+      if (data && data.length > 0) {
+        const { data: urlData } = supabase.storage.from('pep-evidencias').getPublicUrl(`${decodedWbs}/_hero/${data[0].name}`)
+        setHeroImage(urlData.publicUrl)
+      }
+    })
+  }, [decodedWbs])
+
+  const handleHeroUpload = useCallback(async (files: FileList | null) => {
+    if (!files || files.length === 0 || !decodedWbs) return
+    const file = files[0]
+    // Remove old hero images
+    const { data: oldFiles } = await supabase.storage.from('pep-evidencias').list(`${decodedWbs}/_hero`)
+    if (oldFiles && oldFiles.length > 0) {
+      await supabase.storage.from('pep-evidencias').remove(oldFiles.map(f => `${decodedWbs}/_hero/${f.name}`))
+    }
+    const path = `${decodedWbs}/_hero/${Date.now()}_${file.name}`
+    const { error } = await supabase.storage.from('pep-evidencias').upload(path, file)
+    if (error) { toast.error('Erro ao enviar imagem'); return }
+    const { data: urlData } = supabase.storage.from('pep-evidencias').getPublicUrl(path)
+    setHeroImage(urlData.publicUrl)
+    toast.success('Imagem atualizada')
+  }, [decodedWbs])
+
+  const handleRemoveHero = useCallback(async () => {
+    if (!decodedWbs) return
+    const { data: oldFiles } = await supabase.storage.from('pep-evidencias').list(`${decodedWbs}/_hero`)
+    if (oldFiles && oldFiles.length > 0) {
+      await supabase.storage.from('pep-evidencias').remove(oldFiles.map(f => `${decodedWbs}/_hero/${f.name}`))
+    }
+    setHeroImage(null)
+    toast.success('Imagem removida')
+  }, [decodedWbs])
+
+  const handleSaveDescricao = useCallback(async () => {
+    if (!entry) return
+    const { error } = await supabase.from('pep_entries').update({ descricao: descricaoEdit }).eq('id', entry.id)
+    if (error) { toast.error('Erro ao salvar descrição'); return }
+    await logChange(entry.id, 'descricao', entry.descricao ?? null, descricaoEdit)
+    setEditingDescricao(false)
+    toast.success('Descrição atualizada')
+  }, [entry, descricaoEdit])
+
   if (loadingEntries) {
     return <div className="flex items-center justify-center h-64 text-muted-foreground">Carregando...</div>
   }
