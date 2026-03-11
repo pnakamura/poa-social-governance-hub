@@ -1,0 +1,1 @@
+ALTER TABLE public.pep_entries ADD COLUMN IF NOT EXISTS lote text DEFAULT NULL;

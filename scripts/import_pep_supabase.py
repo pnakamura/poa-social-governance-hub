@@ -107,6 +107,7 @@ def import_pep(wb, versao: str, client) -> int:
         prod = safe_int(row[2].value)  # C
         subp = safe_int(row[3].value)  # D
         pct  = safe_int(row[4].value)  # E
+        lote = txt(row[7])             # H — Lote de aquisição
         wbs  = txt(row[8])             # I — código WBS (ex: "1.2.3.4")
         desc = txt(row[9])             # J — descrição autoritativa
 
@@ -147,6 +148,7 @@ def import_pep(wb, versao: str, client) -> int:
             "prod":              prod,
             "subp":              subp,
             "pct":               pct,
+            "lote":              lote,
             "codigo_wbs":        wbs,
             "descricao":         desc,
             "k_reais_bid":       k_bid,

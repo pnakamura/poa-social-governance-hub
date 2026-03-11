@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { ChevronRight, ChevronDown, Search, X, ExternalLink, DollarSign, Calendar, BarChart3, Activity, RefreshCw, Filter, Building2 } from 'lucide-react'
+import { ChevronRight, ChevronDown, Search, X, ExternalLink, DollarSign, Calendar, BarChart3, Activity, RefreshCw, Filter, Building2, Package } from 'lucide-react'
 import { usePEPEntries, usePEPVersoes, usePEPCronogramaFisico } from '@/lib/queries/pep'
 import { usePMROutputs, usePMROutcomes } from '@/lib/queries/pmr'
 import { type PepEntry } from '@/lib/supabase'
@@ -85,18 +85,25 @@ function sortHierarchically(entries: PepEntry[]): PepEntry[] {
   })
 }
 
-// ─── Helper: filter entries by secretaria (keeping parent hierarchy) ──────────
-function filterBySecretaria(entries: PepEntry[], secretaria: string): PepEntry[] {
-  if (secretaria === 'todos') return entries
-  // Find PTs that match the secretaria
-  const matchingPTs = entries.filter(e => e.ref === 'PT' && e.secretaria === secretaria)
-  // Collect parent keys we need to keep
+// ─── Helper: filter entries by secretaria and lote (keeping parent hierarchy) ──
+function filterEntries(entries: PepEntry[], secretaria: string, lote: string): PepEntry[] {
+  if (secretaria === 'todos' && lote === 'todos') return entries
+  const matchingPTs = entries.filter(e => {
+    if (e.ref !== 'PT') return false
+    if (secretaria !== 'todos' && e.secretaria !== secretaria) return false
+    if (lote !== 'todos' && (e as any).lote !== lote) return false
+    return true
+  })
   const keepComps = new Set(matchingPTs.map(e => e.comp))
   const keepProds = new Set(matchingPTs.map(e => `${e.comp}:${e.prod}`))
   const keepSubps = new Set(matchingPTs.map(e => `${e.comp}:${e.prod}:${e.subp}`))
 
   return entries.filter(e => {
-    if (e.ref === 'PT') return e.secretaria === secretaria
+    if (e.ref === 'PT') {
+      if (secretaria !== 'todos' && e.secretaria !== secretaria) return false
+      if (lote !== 'todos' && (e as any).lote !== lote) return false
+      return true
+    }
     if (e.ref === 'C' || e.ref === 'SC') return keepComps.has(e.comp)
     if (e.ref === 'P') return keepProds.has(`${e.comp}:${e.prod}`)
     if (e.ref === 'SP') return keepSubps.has(`${e.comp}:${e.prod}:${e.subp}`)
@@ -726,13 +733,13 @@ function CronogramaTab({ entries, onSelectWBS }: { entries: PepEntry[]; onSelect
 }
 
 // ─── Tab 3: Desembolsos (revised — uses filtered entries) ─────────────────────
-function DesembolsosTab({ entries, moeda, filtroSecretaria }: { entries: PepEntry[]; moeda: 'USD' | 'BRL'; filtroSecretaria: string }) {
-  // When no secretaria filter, use C rows directly (they have correct totals from the spreadsheet).
+function DesembolsosTab({ entries, moeda, isFiltered }: { entries: PepEntry[]; moeda: 'USD' | 'BRL'; isFiltered: boolean }) {
+  // When no filter, use C rows directly (they have correct totals from the spreadsheet).
   // When filtered, aggregate from PT rows of the filtered set.
   const compRows = useMemo(() => {
     const comps = [...new Set(entries.filter(e => e.ref === 'C').map(e => e.comp))].sort((a, b) => (a ?? 0) - (b ?? 0))
 
-    if (filtroSecretaria === 'todos') {
+    if (!isFiltered) {
       // Use C row data directly — accurate totals
       return comps.map(comp => {
         const cRow = entries.find(e => e.ref === 'C' && e.comp === comp)
@@ -767,7 +774,7 @@ function DesembolsosTab({ entries, moeda, filtroSecretaria }: { entries: PepEntr
         desembolso_total: sumField('desembolso_total'),
       }
     }).filter(r => r.desembolso_total > 0 || r.desembolso_2025 > 0)
-  }, [entries, filtroSecretaria])
+  }, [entries, isFiltered])
 
   const chartData = useMemo(() => {
     return ANOS_DESEMBOLSO.map(ano => {
@@ -1009,6 +1016,7 @@ export default function PEPPage() {
   const [versao, setVersao] = useState('v2')
   const [moeda, setMoeda] = useState<'USD' | 'BRL'>('USD')
   const [filtroSecretaria, setFiltroSecretaria] = useState('todos')
+  const [filtroLote, setFiltroLote] = useState('todos')
   const [selectedEntry, setSelectedEntry] = useState<PepEntry | null>(null)
   const [activeTab, setActiveTab] = useState('hierarquia')
   const [syncing, setSyncing] = useState(false)
@@ -1023,11 +1031,45 @@ export default function PEPPage() {
     [entries]
   )
 
-  // Apply global secretaria filter
-  const filteredEntries = useMemo(() =>
-    filterBySecretaria(entries, filtroSecretaria),
-    [entries, filtroSecretaria]
+  // Derive lote list from PT entries
+  const lotes = useMemo(() =>
+    [...new Set(entries.filter(e => e.ref === 'PT' && (e as any).lote).map(e => (e as any).lote as string))].sort(),
+    [entries]
   )
+
+  const isFiltered = filtroSecretaria !== 'todos' || filtroLote !== 'todos'
+
+  // Apply global filters
+  const filteredEntries = useMemo(() =>
+    filterEntries(entries, filtroSecretaria, filtroLote),
+    [entries, filtroSecretaria, filtroLote]
+  )
+
+  // Global totals (always from all entries, C rows)
+  const globalTotals = useMemo(() => {
+    const cRows = entries.filter(e => e.ref === 'C')
+    const f = moeda === 'BRL'
+    return {
+      bid:   cRows.reduce((s, r) => s + (f ? (r.k_reais_bid ?? 0) : (r.n_atual ?? 0)), 0),
+      local: cRows.reduce((s, r) => s + (f ? (r.l_reais_local ?? 0) : (r.o_atual ?? 0)), 0),
+      total: cRows.reduce((s, r) => s + (f ? (r.m_reais_total ?? 0) : (r.p_atual ?? 0)), 0),
+      base:  f ? null : cRows.reduce((s, r) => s + (r.t_base ?? 0), 0),
+    }
+  }, [entries, moeda])
+
+  // Filtered totals (aggregated from filtered PT rows)
+  const filteredTotals = useMemo(() => {
+    if (!isFiltered) return null
+    const ptRows = filteredEntries.filter(e => e.ref === 'PT')
+    const f = moeda === 'BRL'
+    return {
+      bid:   ptRows.reduce((s, r) => s + (f ? (r.k_reais_bid ?? 0) : (r.n_atual ?? 0)), 0),
+      local: ptRows.reduce((s, r) => s + (f ? (r.l_reais_local ?? 0) : (r.o_atual ?? 0)), 0),
+      total: ptRows.reduce((s, r) => s + (f ? (r.m_reais_total ?? 0) : (r.p_atual ?? 0)), 0),
+      base:  f ? null : ptRows.reduce((s, r) => s + (r.t_base ?? 0), 0),
+      ptCount: ptRows.length,
+    }
+  }, [filteredEntries, moeda, isFiltered])
 
   const handleSelectEntry = (entry: PepEntry) => setSelectedEntry(entry)
 
@@ -1064,6 +1106,12 @@ export default function PEPPage() {
     if (entry) setSelectedEntry(entry)
   }
 
+  const fCurr = moeda === 'BRL' ? fBRL : fUSD
+  const filterLabel = [
+    filtroSecretaria !== 'todos' ? filtroSecretaria : null,
+    filtroLote !== 'todos' ? `Lote ${filtroLote}` : null,
+  ].filter(Boolean).join(' · ')
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -1097,6 +1145,20 @@ export default function PEPPage() {
             </SelectContent>
           </Select>
 
+          {/* Lote filter */}
+          {lotes.length > 0 && (
+            <Select value={filtroLote} onValueChange={setFiltroLote}>
+              <SelectTrigger className={cn('w-36 h-8 text-xs', filtroLote !== 'todos' && 'border-primary')}>
+                <Package className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
+                <SelectValue placeholder="Lote" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os Lotes</SelectItem>
+                {lotes.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
+
           <div className="flex rounded-md border border-border overflow-hidden text-xs">
             <button
               className={cn('px-3 py-1.5 transition-colors', moeda === 'USD' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}
@@ -1119,13 +1181,58 @@ export default function PEPPage() {
         </div>
       </div>
 
-      {filtroSecretaria !== 'todos' && (
+      {/* Global KPIs — always show program totals */}
+      <div>
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1.5 font-medium">
+          {isFiltered ? '🌐 Totais Globais do Programa' : 'Totais do Programa'}
+        </p>
+        <div className={cn('grid gap-3', moeda === 'USD' ? 'grid-cols-4' : 'grid-cols-3')}>
+          {[
+            { label: 'Total BID', value: fCurr(globalTotals.bid) },
+            { label: 'Total Local', value: fCurr(globalTotals.local) },
+            { label: 'Total Programa', value: fCurr(globalTotals.total) },
+            ...(moeda === 'USD' && globalTotals.base != null ? [{ label: 'Total Base', value: fUSD(globalTotals.base) }] : []),
+          ].map(item => (
+            <Card key={item.label} className={cn('p-3', isFiltered && 'opacity-70')}>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{item.label}</p>
+              <p className="text-lg font-bold tabular-nums mt-0.5">{item.value}</p>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Filtered KPIs — show only when filter is active */}
+      {isFiltered && filteredTotals && (
+        <div>
+          <div className="flex items-center gap-2 mb-1.5">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">
+              🔍 Totais Filtrados — {filterLabel}
+            </p>
+            <Badge variant="secondary" className="text-[9px] px-1.5 py-0">{filteredTotals.ptCount} PTs</Badge>
+          </div>
+          <div className={cn('grid gap-3', moeda === 'USD' ? 'grid-cols-4' : 'grid-cols-3')}>
+            {[
+              { label: `BID — ${filterLabel}`, value: fCurr(filteredTotals.bid) },
+              { label: `Local — ${filterLabel}`, value: fCurr(filteredTotals.local) },
+              { label: `Total — ${filterLabel}`, value: fCurr(filteredTotals.total) },
+              ...(moeda === 'USD' && filteredTotals.base != null ? [{ label: `Base — ${filterLabel}`, value: fUSD(filteredTotals.base) }] : []),
+            ].map(item => (
+              <Card key={item.label} className="p-3 border-primary/30 bg-primary/5">
+                <p className="text-[10px] text-primary uppercase tracking-wide">{item.label}</p>
+                <p className="text-lg font-bold tabular-nums mt-0.5">{item.value}</p>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {isFiltered && (
         <div className="flex items-center gap-2 text-xs px-3 py-2 bg-primary/5 rounded-lg border border-primary/20">
-          <Building2 className="w-3.5 h-3.5 text-primary" />
-          <span>Filtrando por <strong>{filtroSecretaria}</strong></span>
+          <Filter className="w-3.5 h-3.5 text-primary" />
+          <span>Filtrando por <strong>{filterLabel}</strong></span>
           <span className="text-muted-foreground">({filteredEntries.filter(e => e.ref === 'PT').length} pacotes de trabalho)</span>
-          <Button variant="ghost" size="sm" className="h-6 text-xs ml-auto" onClick={() => setFiltroSecretaria('todos')}>
-            <X className="w-3 h-3 mr-1" /> Limpar
+          <Button variant="ghost" size="sm" className="h-6 text-xs ml-auto" onClick={() => { setFiltroSecretaria('todos'); setFiltroLote('todos') }}>
+            <X className="w-3 h-3 mr-1" /> Limpar Filtros
           </Button>
         </div>
       )}
@@ -1168,7 +1275,7 @@ export default function PEPPage() {
         </TabsContent>
 
         <TabsContent value="desembolsos" className="mt-4">
-          <DesembolsosTab entries={filteredEntries} moeda={moeda} filtroSecretaria={filtroSecretaria} />
+          <DesembolsosTab entries={filteredEntries} moeda={moeda} isFiltered={isFiltered} />
         </TabsContent>
 
         <TabsContent value="pmr" className="mt-4">
