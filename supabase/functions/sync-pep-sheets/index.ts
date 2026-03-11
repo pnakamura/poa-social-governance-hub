@@ -194,6 +194,18 @@ Deno.serve(async (req) => {
 
     console.log(`Found ${pepRows.length} valid PEP entries`);
 
+    // Debug: log columns 20-30 of first few PT rows to identify secretaria column
+    const ptSamples = allRows.slice(3, Math.min(allRows.length, 246))
+      .filter(r => r[0]?.trim() === 'PT')
+      .slice(0, 3);
+    ptSamples.forEach((row, idx) => {
+      const cols: Record<string, string> = {};
+      for (let c = 20; c <= Math.min(35, row.length - 1); c++) {
+        cols[`col${c}`] = row[c]?.substring(0, 30) ?? '';
+      }
+      console.log(`PT sample ${idx} (row desc: ${row[9]?.substring(0, 40)}):`, JSON.stringify(cols));
+    });
+
     if (pepRows.length === 0) {
       return new Response(
         JSON.stringify({ success: false, error: "Nenhuma linha PEP encontrada na planilha", rows: 0 }),
