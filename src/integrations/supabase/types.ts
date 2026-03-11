@@ -14,6 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_cache: {
+        Row: {
+          calculado_em: string
+          chave: string
+          dados: Json
+        }
+        Insert: {
+          calculado_em?: string
+          chave: string
+          dados: Json
+        }
+        Update: {
+          calculado_em?: string
+          chave?: string
+          dados?: Json
+        }
+        Relationships: []
+      }
+      aquisicoes: {
+        Row: {
+          componente: string | null
+          created_at: string | null
+          data_adjudicacao: string | null
+          data_contratacao: string | null
+          data_fim_previsto: string | null
+          data_fim_real: string | null
+          data_inicio_previsto: string | null
+          data_publicacao: string | null
+          fidic_aplicavel: boolean | null
+          financiador: string | null
+          id: string
+          id_processo: string | null
+          lote: string | null
+          modalidade: string | null
+          notas: string | null
+          secretaria: string
+          status: string
+          tipo: string
+          titulo: string
+          updated_at: string | null
+          valor_brl: number | null
+          valor_usd: number | null
+        }
+        Insert: {
+          componente?: string | null
+          created_at?: string | null
+          data_adjudicacao?: string | null
+          data_contratacao?: string | null
+          data_fim_previsto?: string | null
+          data_fim_real?: string | null
+          data_inicio_previsto?: string | null
+          data_publicacao?: string | null
+          fidic_aplicavel?: boolean | null
+          financiador?: string | null
+          id?: string
+          id_processo?: string | null
+          lote?: string | null
+          modalidade?: string | null
+          notas?: string | null
+          secretaria: string
+          status?: string
+          tipo: string
+          titulo: string
+          updated_at?: string | null
+          valor_brl?: number | null
+          valor_usd?: number | null
+        }
+        Update: {
+          componente?: string | null
+          created_at?: string | null
+          data_adjudicacao?: string | null
+          data_contratacao?: string | null
+          data_fim_previsto?: string | null
+          data_fim_real?: string | null
+          data_inicio_previsto?: string | null
+          data_publicacao?: string | null
+          fidic_aplicavel?: boolean | null
+          financiador?: string | null
+          id?: string
+          id_processo?: string | null
+          lote?: string | null
+          modalidade?: string | null
+          notas?: string | null
+          secretaria?: string
+          status?: string
+          tipo?: string
+          titulo?: string
+          updated_at?: string | null
+          valor_brl?: number | null
+          valor_usd?: number | null
+        }
+        Relationships: []
+      }
       atividades: {
         Row: {
           atualizado_em: string | null
@@ -50,6 +143,45 @@ export type Database = {
           responsavel?: string | null
           status?: string | null
           titulo?: string
+        }
+        Relationships: []
+      }
+      marcos: {
+        Row: {
+          area: string | null
+          created_at: string | null
+          data_marco: string
+          descricao: string | null
+          id: string
+          referencia_doc: string | null
+          status: string
+          tipo: string
+          titulo: string
+          updated_at: string | null
+        }
+        Insert: {
+          area?: string | null
+          created_at?: string | null
+          data_marco: string
+          descricao?: string | null
+          id?: string
+          referencia_doc?: string | null
+          status?: string
+          tipo: string
+          titulo: string
+          updated_at?: string | null
+        }
+        Update: {
+          area?: string | null
+          created_at?: string | null
+          data_marco?: string
+          descricao?: string | null
+          id?: string
+          referencia_doc?: string | null
+          status?: string
+          tipo?: string
+          titulo?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -160,57 +292,120 @@ export type Database = {
       }
       pep_entries: {
         Row: {
+          codigo_wbs: string | null
           comp: number | null
           descricao: string | null
+          desembolso_2025: number | null
+          desembolso_2026: number | null
+          desembolso_2027: number | null
+          desembolso_2028: number | null
+          desembolso_2029: number | null
+          desembolso_total: number | null
+          fisica_2025: number | null
+          fisica_2026: number | null
+          fisica_2027: number | null
+          fisica_2028: number | null
+          fisica_2029: number | null
+          fisica_eop: number | null
           id: string
           importado_em: string | null
+          k_reais_bid: number | null
+          l_reais_local: number | null
           linha_excel: number | null
+          m_reais_total: number | null
+          metodo_aquisicao: string | null
           n_atual: number | null
           o_atual: number | null
           p_atual: number | null
+          pa_ref: string | null
           pct: number | null
+          pct_bid: number | null
+          pmr_ref: string | null
           prod: number | null
           r_base: number | null
           ref: string
           s_base: number | null
           subp: number | null
           t_base: number | null
+          tipo_aquisicao: string | null
           versao: string
         }
         Insert: {
+          codigo_wbs?: string | null
           comp?: number | null
           descricao?: string | null
+          desembolso_2025?: number | null
+          desembolso_2026?: number | null
+          desembolso_2027?: number | null
+          desembolso_2028?: number | null
+          desembolso_2029?: number | null
+          desembolso_total?: number | null
+          fisica_2025?: number | null
+          fisica_2026?: number | null
+          fisica_2027?: number | null
+          fisica_2028?: number | null
+          fisica_2029?: number | null
+          fisica_eop?: number | null
           id?: string
           importado_em?: string | null
+          k_reais_bid?: number | null
+          l_reais_local?: number | null
           linha_excel?: number | null
+          m_reais_total?: number | null
+          metodo_aquisicao?: string | null
           n_atual?: number | null
           o_atual?: number | null
           p_atual?: number | null
+          pa_ref?: string | null
           pct?: number | null
+          pct_bid?: number | null
+          pmr_ref?: string | null
           prod?: number | null
           r_base?: number | null
           ref: string
           s_base?: number | null
           subp?: number | null
           t_base?: number | null
+          tipo_aquisicao?: string | null
           versao?: string
         }
         Update: {
+          codigo_wbs?: string | null
           comp?: number | null
           descricao?: string | null
+          desembolso_2025?: number | null
+          desembolso_2026?: number | null
+          desembolso_2027?: number | null
+          desembolso_2028?: number | null
+          desembolso_2029?: number | null
+          desembolso_total?: number | null
+          fisica_2025?: number | null
+          fisica_2026?: number | null
+          fisica_2027?: number | null
+          fisica_2028?: number | null
+          fisica_2029?: number | null
+          fisica_eop?: number | null
           id?: string
           importado_em?: string | null
+          k_reais_bid?: number | null
+          l_reais_local?: number | null
           linha_excel?: number | null
+          m_reais_total?: number | null
+          metodo_aquisicao?: string | null
           n_atual?: number | null
           o_atual?: number | null
           p_atual?: number | null
+          pa_ref?: string | null
           pct?: number | null
+          pct_bid?: number | null
+          pmr_ref?: string | null
           prod?: number | null
           r_base?: number | null
           ref?: string
           s_base?: number | null
           subp?: number | null
           t_base?: number | null
+          tipo_aquisicao?: string | null
           versao?: string
         }
         Relationships: []
@@ -311,6 +506,54 @@ export type Database = {
         }
         Relationships: []
       }
+      pontos_atencao: {
+        Row: {
+          area: string
+          ativo: boolean | null
+          created_at: string | null
+          criticidade: string
+          data_atualizacao: string | null
+          descricao: string | null
+          id: string
+          prazo_previsto: string | null
+          resolucao: string | null
+          responsavel: string | null
+          status_texto: string | null
+          tema: string
+          updated_at: string | null
+        }
+        Insert: {
+          area: string
+          ativo?: boolean | null
+          created_at?: string | null
+          criticidade?: string
+          data_atualizacao?: string | null
+          descricao?: string | null
+          id?: string
+          prazo_previsto?: string | null
+          resolucao?: string | null
+          responsavel?: string | null
+          status_texto?: string | null
+          tema: string
+          updated_at?: string | null
+        }
+        Update: {
+          area?: string
+          ativo?: boolean | null
+          created_at?: string | null
+          criticidade?: string
+          data_atualizacao?: string | null
+          descricao?: string | null
+          id?: string
+          prazo_previsto?: string | null
+          resolucao?: string | null
+          responsavel?: string | null
+          status_texto?: string | null
+          tema?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           cargo: string | null
@@ -344,6 +587,45 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           telefone?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      programa_contexto: {
+        Row: {
+          ano_referencia: number | null
+          categoria: string
+          created_at: string | null
+          fonte: string | null
+          id: string
+          indicador: string
+          notas: string | null
+          unidade: string | null
+          valor: number | null
+          valor_texto: string | null
+        }
+        Insert: {
+          ano_referencia?: number | null
+          categoria: string
+          created_at?: string | null
+          fonte?: string | null
+          id?: string
+          indicador: string
+          notas?: string | null
+          unidade?: string | null
+          valor?: number | null
+          valor_texto?: string | null
+        }
+        Update: {
+          ano_referencia?: number | null
+          categoria?: string
+          created_at?: string | null
+          fonte?: string | null
+          id?: string
+          indicador?: string
+          notas?: string | null
+          unidade?: string | null
+          valor?: number | null
+          valor_texto?: string | null
         }
         Relationships: []
       }
@@ -607,6 +889,81 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sync_log: {
+        Row: {
+          executado_em: string | null
+          executado_por: string | null
+          fonte: string
+          id: number
+          mensagem_erro: string | null
+          registros_atualizados: number | null
+          registros_erro: number | null
+          registros_ignorados: number | null
+          registros_inseridos: number | null
+          registros_lidos: number | null
+          status: string
+          tabela_destino: string
+          versao: string | null
+        }
+        Insert: {
+          executado_em?: string | null
+          executado_por?: string | null
+          fonte: string
+          id?: number
+          mensagem_erro?: string | null
+          registros_atualizados?: number | null
+          registros_erro?: number | null
+          registros_ignorados?: number | null
+          registros_inseridos?: number | null
+          registros_lidos?: number | null
+          status?: string
+          tabela_destino: string
+          versao?: string | null
+        }
+        Update: {
+          executado_em?: string | null
+          executado_por?: string | null
+          fonte?: string
+          id?: number
+          mensagem_erro?: string | null
+          registros_atualizados?: number | null
+          registros_erro?: number | null
+          registros_ignorados?: number | null
+          registros_inseridos?: number | null
+          registros_lidos?: number | null
+          status?: string
+          tabela_destino?: string
+          versao?: string | null
+        }
+        Relationships: []
+      }
+      temas_monitoramento: {
+        Row: {
+          ativo: boolean | null
+          criado_em: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          palavras_chave: string[]
+        }
+        Insert: {
+          ativo?: boolean | null
+          criado_em?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          palavras_chave?: string[]
+        }
+        Update: {
+          ativo?: boolean | null
+          criado_em?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          palavras_chave?: string[]
+        }
+        Relationships: []
       }
       templates: {
         Row: {
