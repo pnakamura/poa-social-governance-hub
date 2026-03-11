@@ -60,11 +60,9 @@ export default function PEPDetalhePage() {
   const decodedWbs = wbs ? decodeURIComponent(wbs) : ''
   const navigate = useNavigate()
 
-  // Fetch PEP entry
   const { data: allEntries = [], isLoading: loadingEntries } = usePEPEntries('v2')
   const entry = useMemo(() => allEntries.find(e => e.codigo_wbs === decodedWbs) ?? null, [allEntries, decodedWbs])
 
-  // Subatividades (children in WBS hierarchy)
   const children = useMemo(() => {
     if (!entry) return []
     const { comp, prod, subp, ref } = entry
@@ -77,47 +75,29 @@ export default function PEPDetalhePage() {
     })
   }, [entry, allEntries])
 
-  // Gestão data
   const { data: gestao, isLoading: loadingGestao } = usePepGestao(entry?.id)
   const upsertGestao = useUpsertPepGestao()
-
-  // Impedimentos
   const { data: impedimentos = [] } = usePepImpedimentos(entry?.id)
   const addImpedimento = useAddImpedimento()
   const toggleImpedimento = useToggleImpedimento()
   const deleteImpedimento = useDeleteImpedimento()
-
-  // Histórico
   const { data: historico = [] } = usePepHistorico(entry?.id)
-
-  // Evidências
   const { data: evidencias = [] } = usePepEvidencias(decodedWbs)
   const uploadEvidencia = useUploadEvidencia()
   const deleteEvidencia = useDeleteEvidencia()
 
-  // Edit mode
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({
-    status: 'nao_iniciado',
-    progresso: 0,
-    data_inicio_real: '',
-    data_fim_previsto: '',
-    nivel_risco: 'baixo',
-    notas: '',
-    tipo_aquisicao: '',
-    metodo_aquisicao: '',
+    status: 'nao_iniciado', progresso: 0, data_inicio_real: '', data_fim_previsto: '',
+    nivel_risco: 'baixo', notas: '', tipo_aquisicao: '', metodo_aquisicao: '',
   })
 
   const startEdit = useCallback(() => {
     setForm({
-      status: gestao?.status ?? 'nao_iniciado',
-      progresso: gestao?.progresso ?? 0,
-      data_inicio_real: gestao?.data_inicio_real ?? '',
-      data_fim_previsto: gestao?.data_fim_previsto ?? '',
-      nivel_risco: gestao?.nivel_risco ?? 'baixo',
-      notas: gestao?.notas ?? '',
-      tipo_aquisicao: entry?.tipo_aquisicao ?? '',
-      metodo_aquisicao: entry?.metodo_aquisicao ?? '',
+      status: gestao?.status ?? 'nao_iniciado', progresso: gestao?.progresso ?? 0,
+      data_inicio_real: gestao?.data_inicio_real ?? '', data_fim_previsto: gestao?.data_fim_previsto ?? '',
+      nivel_risco: gestao?.nivel_risco ?? 'baixo', notas: gestao?.notas ?? '',
+      tipo_aquisicao: entry?.tipo_aquisicao ?? '', metodo_aquisicao: entry?.metodo_aquisicao ?? '',
     })
     setEditing(true)
   }, [gestao, entry])
@@ -125,7 +105,6 @@ export default function PEPDetalhePage() {
   const handleSave = useCallback(async () => {
     if (!entry) return
     try {
-      // Log changes
       const old = gestao
       const changes: [string, string | null, string | null][] = []
       if ((old?.status ?? 'nao_iniciado') !== form.status) changes.push(['status', old?.status ?? 'nao_iniciado', form.status])
@@ -136,26 +115,19 @@ export default function PEPDetalhePage() {
       if ((old?.notas ?? '') !== (form.notas ?? '')) changes.push(['notas', old?.notas ?? null, form.notas || null])
 
       await upsertGestao.mutateAsync({
-        pep_entry_id: entry.id,
-        status: form.status,
-        progresso: form.progresso,
-        data_inicio_real: form.data_inicio_real || null,
-        data_fim_previsto: form.data_fim_previsto || null,
-        nivel_risco: form.nivel_risco,
-        notas: form.notas || null,
+        pep_entry_id: entry.id, status: form.status, progresso: form.progresso,
+        data_inicio_real: form.data_inicio_real || null, data_fim_previsto: form.data_fim_previsto || null,
+        nivel_risco: form.nivel_risco, notas: form.notas || null,
       })
 
-      // Update pep_entries tipo/metodo if changed
       if (form.tipo_aquisicao !== (entry.tipo_aquisicao ?? '') || form.metodo_aquisicao !== (entry.metodo_aquisicao ?? '')) {
         await supabase.from('pep_entries').update({
-          tipo_aquisicao: form.tipo_aquisicao || null,
-          metodo_aquisicao: form.metodo_aquisicao || null,
+          tipo_aquisicao: form.tipo_aquisicao || null, metodo_aquisicao: form.metodo_aquisicao || null,
         }).eq('id', entry.id)
         if (form.tipo_aquisicao !== (entry.tipo_aquisicao ?? '')) changes.push(['tipo_aquisicao', entry.tipo_aquisicao ?? null, form.tipo_aquisicao || null])
         if (form.metodo_aquisicao !== (entry.metodo_aquisicao ?? '')) changes.push(['metodo_aquisicao', entry.metodo_aquisicao ?? null, form.metodo_aquisicao || null])
       }
 
-      // Log all changes
       for (const [campo, anterior, novo] of changes) {
         await logChange(entry.id, campo, anterior, novo)
       }
@@ -167,7 +139,6 @@ export default function PEPDetalhePage() {
     }
   }, [entry, gestao, form, upsertGestao])
 
-  // Impedimento add
   const [newImpedimento, setNewImpedimento] = useState('')
   const handleAddImpedimento = useCallback(async () => {
     if (!entry || !newImpedimento.trim()) return
@@ -175,7 +146,6 @@ export default function PEPDetalhePage() {
     setNewImpedimento('')
   }, [entry, newImpedimento, addImpedimento])
 
-  // File upload
   const fileInputRef = useRef<HTMLInputElement>(null)
   const handleFileUpload = useCallback(async (files: FileList | null) => {
     if (!files || !decodedWbs) return
@@ -183,22 +153,16 @@ export default function PEPDetalhePage() {
       try {
         await uploadEvidencia.mutateAsync({ wbs: decodedWbs, file })
         toast.success(`${file.name} enviado`)
-      } catch {
-        toast.error(`Erro ao enviar ${file.name}`)
-      }
+      } catch { toast.error(`Erro ao enviar ${file.name}`) }
     }
   }, [decodedWbs, uploadEvidencia])
 
-  // Lightbox
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
-
-  // Hero image (stored in storage bucket under wbs/_hero)
   const heroInputRef = useRef<HTMLInputElement>(null)
   const [heroImage, setHeroImage] = useState<string | null>(null)
   const [editingDescricao, setEditingDescricao] = useState(false)
   const [descricaoEdit, setDescricaoEdit] = useState('')
 
-  // Load hero image on mount
   const heroLoaded = useRef(false)
   useMemo(() => {
     if (!decodedWbs || heroLoaded.current) return
@@ -214,7 +178,6 @@ export default function PEPDetalhePage() {
   const handleHeroUpload = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0 || !decodedWbs) return
     const file = files[0]
-    // Remove old hero images
     const { data: oldFiles } = await supabase.storage.from('pep-evidencias').list(`${decodedWbs}/_hero`)
     if (oldFiles && oldFiles.length > 0) {
       await supabase.storage.from('pep-evidencias').remove(oldFiles.map(f => `${decodedWbs}/_hero/${f.name}`))
@@ -272,12 +235,12 @@ export default function PEPDetalhePage() {
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/pep')}>
+            <Button variant="ghost" size="icon" className="rounded-lg hover:bg-primary/10" onClick={() => navigate('/pep')}>
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <span className="font-mono text-xs bg-primary/10 text-primary px-2 py-1 rounded">WBS {entry.codigo_wbs}</span>
-            <Badge variant="outline" className="text-xs">{REF_LABELS[entry.ref] ?? entry.ref}</Badge>
-            <Badge className={cn('text-xs', statusCfg.color)}>{statusCfg.label}</Badge>
+            <span className="font-mono text-xs gradient-bid text-white px-2.5 py-1 rounded-lg shadow-sm">WBS {entry.codigo_wbs}</span>
+            <Badge variant="outline" className="text-xs rounded-full">{REF_LABELS[entry.ref] ?? entry.ref}</Badge>
+            <Badge className={cn('text-xs rounded-full', statusCfg.color)}>{statusCfg.label}</Badge>
           </div>
           <h1 className="text-xl font-bold text-foreground pl-10">{entry.descricao ?? 'Sem descrição'}</h1>
           {entry.secretaria && <p className="text-sm text-muted-foreground pl-10">Secretaria: {entry.secretaria}</p>}
@@ -285,11 +248,11 @@ export default function PEPDetalhePage() {
         <div className="flex gap-2">
           {editing ? (
             <>
-              <Button variant="outline" size="sm" onClick={() => setEditing(false)}><X className="w-4 h-4 mr-1" />Cancelar</Button>
-              <Button size="sm" onClick={handleSave} disabled={upsertGestao.isPending}><Save className="w-4 h-4 mr-1" />Salvar</Button>
+              <Button variant="outline" size="sm" className="rounded-lg" onClick={() => setEditing(false)}><X className="w-4 h-4 mr-1" />Cancelar</Button>
+              <Button size="sm" className="rounded-lg" onClick={handleSave} disabled={upsertGestao.isPending}><Save className="w-4 h-4 mr-1" />Salvar</Button>
             </>
           ) : (
-            <Button variant="outline" size="sm" onClick={startEdit}><Edit2 className="w-4 h-4 mr-1" />Editar</Button>
+            <Button variant="outline" size="sm" className="rounded-lg" onClick={startEdit}><Edit2 className="w-4 h-4 mr-1" />Editar</Button>
           )}
         </div>
       </div>
@@ -298,37 +261,31 @@ export default function PEPDetalhePage() {
       <div className="pl-10 pr-4">
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground w-16">Progresso</span>
-          <Progress value={progresso} className="flex-1 h-2" />
+          <Progress value={progresso} className="flex-1 h-2.5 rounded-full" />
           <span className="text-sm font-semibold w-10 text-right">{progresso}%</span>
         </div>
       </div>
 
       {/* ─── Hero Image + Descrição ─────────────────────────────── */}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden rounded-xl border-0 shadow-md">
         <div className="flex flex-col sm:flex-row">
           {/* Image — 1/4 width */}
           <div className="relative group sm:w-1/4 flex-shrink-0">
             {heroImage ? (
-              <img
-                src={heroImage}
-                alt={entry.descricao ?? 'Imagem do item PEP'}
-                className="w-full h-48 sm:h-full object-cover"
-              />
+              <img src={heroImage} alt={entry.descricao ?? 'Imagem do item PEP'} className="w-full h-48 sm:h-full object-cover" />
             ) : (
-              <div className="w-full h-48 sm:h-full min-h-[160px] bg-muted/30 flex items-center justify-center">
-                <img src={logoPoaSocial} alt="POA+ Social" className="h-20 opacity-60" />
+              <div className="w-full h-48 sm:h-full min-h-[160px] bg-gradient-to-br from-muted/30 to-muted/10 flex items-center justify-center">
+                <img src={logoPoaSocial} alt="POA+ Social" className="h-20 opacity-40" />
               </div>
             )}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
               <div className="flex flex-col gap-1">
-                <Button variant="secondary" size="sm" className="shadow-lg" onClick={() => heroInputRef.current?.click()}>
-                  <Camera className="w-4 h-4 mr-1" />
-                  {heroImage ? 'Trocar' : 'Adicionar'}
+                <Button variant="secondary" size="sm" className="shadow-lg rounded-lg" onClick={() => heroInputRef.current?.click()}>
+                  <Camera className="w-4 h-4 mr-1" />{heroImage ? 'Trocar' : 'Adicionar'}
                 </Button>
                 {heroImage && (
-                  <Button variant="destructive" size="sm" className="shadow-lg" onClick={handleRemoveHero}>
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    Remover
+                  <Button variant="destructive" size="sm" className="shadow-lg rounded-lg" onClick={handleRemoveHero}>
+                    <Trash2 className="w-4 h-4 mr-1" />Remover
                   </Button>
                 )}
               </div>
@@ -337,24 +294,19 @@ export default function PEPDetalhePage() {
           </div>
 
           {/* Description — 3/4 width */}
-          <div className="sm:w-3/4 p-5 flex flex-col justify-center">
-            <p className="text-xs font-medium text-muted-foreground mb-2">Resumo Executivo</p>
+          <div className="sm:w-3/4 p-6 flex flex-col justify-center">
+            <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Resumo Executivo</p>
             {editingDescricao ? (
               <div className="flex gap-2">
-                <Textarea
-                  value={descricaoEdit}
-                  onChange={(e) => setDescricaoEdit(e.target.value)}
-                  placeholder="Descreva o resumo executivo deste item..."
-                  className="min-h-[100px] flex-1"
-                />
+                <Textarea value={descricaoEdit} onChange={(e) => setDescricaoEdit(e.target.value)} placeholder="Descreva o resumo executivo deste item..." className="min-h-[100px] flex-1 rounded-lg" />
                 <div className="flex flex-col gap-1">
-                  <Button size="sm" onClick={handleSaveDescricao}><Save className="w-4 h-4" /></Button>
-                  <Button size="sm" variant="ghost" onClick={() => setEditingDescricao(false)}><X className="w-4 h-4" /></Button>
+                  <Button size="sm" className="rounded-lg" onClick={handleSaveDescricao}><Save className="w-4 h-4" /></Button>
+                  <Button size="sm" variant="ghost" className="rounded-lg" onClick={() => setEditingDescricao(false)}><X className="w-4 h-4" /></Button>
                 </div>
               </div>
             ) : (
               <div
-                className="cursor-pointer hover:bg-muted/50 rounded-md p-2 -m-2 transition-colors group/desc"
+                className="cursor-pointer hover:bg-muted/30 rounded-xl p-3 -m-3 transition-all duration-200 group/desc"
                 onClick={() => { setDescricaoEdit(entry.resumo_executivo ?? ''); setEditingDescricao(true) }}
               >
                 <p className="text-sm text-foreground leading-relaxed">
@@ -372,11 +324,11 @@ export default function PEPDetalhePage() {
         <div className="lg:col-span-2 space-y-6">
 
           {/* Painel Financeiro */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Painel Financeiro</CardTitle>
+          <Card className="rounded-xl border-0 shadow-sm overflow-hidden">
+            <CardHeader className="pb-3 gradient-bid-subtle">
+              <CardTitle className="text-base gradient-bid-text">Painel Financeiro</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <MiniCard label="BID (USD)" value={fUSD(entry.n_atual)} />
                 <MiniCard label="Local (USD)" value={fUSD(entry.o_atual)} />
@@ -388,7 +340,7 @@ export default function PEPDetalhePage() {
                 <p className="text-xs font-medium text-muted-foreground mb-2">Desembolso Previsto por Ano (USD)</p>
                 <div className="grid grid-cols-5 gap-2 text-center">
                   {ANOS_FIN.map(a => (
-                    <div key={a} className="rounded-md bg-muted/50 p-2">
+                    <div key={a} className="rounded-xl bg-gradient-to-b from-muted/50 to-muted/20 p-2.5 hover-lift">
                       <p className="text-[10px] text-muted-foreground">{a}</p>
                       <p className="text-xs font-semibold">{fUSD((entry as any)[`desembolso_${a}`])}</p>
                     </div>
@@ -399,7 +351,7 @@ export default function PEPDetalhePage() {
           </Card>
 
           {/* Gestão da Execução */}
-          <Card>
+          <Card className="rounded-xl border-0 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Gestão da Execução</CardTitle>
             </CardHeader>
@@ -410,19 +362,15 @@ export default function PEPDetalhePage() {
                     <div>
                       <label className="text-xs font-medium text-muted-foreground">Status</label>
                       <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
-                        <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(STATUS_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
-                        </SelectContent>
+                        <SelectTrigger className="mt-1 rounded-lg"><SelectValue /></SelectTrigger>
+                        <SelectContent>{Object.entries(STATUS_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div>
                       <label className="text-xs font-medium text-muted-foreground">Nível de Risco</label>
                       <Select value={form.nivel_risco} onValueChange={v => setForm(f => ({ ...f, nivel_risco: v }))}>
-                        <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(RISCO_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
-                        </SelectContent>
+                        <SelectTrigger className="mt-1 rounded-lg"><SelectValue /></SelectTrigger>
+                        <SelectContent>{Object.entries(RISCO_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                   </div>
@@ -433,33 +381,33 @@ export default function PEPDetalhePage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs font-medium text-muted-foreground">Início Real</label>
-                      <Input type="date" value={form.data_inicio_real} onChange={e => setForm(f => ({ ...f, data_inicio_real: e.target.value }))} className="mt-1" />
+                      <Input type="date" value={form.data_inicio_real} onChange={e => setForm(f => ({ ...f, data_inicio_real: e.target.value }))} className="mt-1 rounded-lg" />
                     </div>
                     <div>
                       <label className="text-xs font-medium text-muted-foreground">Previsão de Término</label>
-                      <Input type="date" value={form.data_fim_previsto} onChange={e => setForm(f => ({ ...f, data_fim_previsto: e.target.value }))} className="mt-1" />
+                      <Input type="date" value={form.data_fim_previsto} onChange={e => setForm(f => ({ ...f, data_fim_previsto: e.target.value }))} className="mt-1 rounded-lg" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs font-medium text-muted-foreground">Tipo de Aquisição</label>
-                      <Input value={form.tipo_aquisicao} onChange={e => setForm(f => ({ ...f, tipo_aquisicao: e.target.value }))} className="mt-1" placeholder="Ex: Obras, Bens, Consultoria" />
+                      <Input value={form.tipo_aquisicao} onChange={e => setForm(f => ({ ...f, tipo_aquisicao: e.target.value }))} className="mt-1 rounded-lg" placeholder="Ex: Obras, Bens, Consultoria" />
                     </div>
                     <div>
                       <label className="text-xs font-medium text-muted-foreground">Método de Aquisição</label>
-                      <Input value={form.metodo_aquisicao} onChange={e => setForm(f => ({ ...f, metodo_aquisicao: e.target.value }))} className="mt-1" placeholder="Ex: LPN, SBC, CD" />
+                      <Input value={form.metodo_aquisicao} onChange={e => setForm(f => ({ ...f, metodo_aquisicao: e.target.value }))} className="mt-1 rounded-lg" placeholder="Ex: LPN, SBC, CD" />
                     </div>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Notas de Gestão</label>
-                    <Textarea value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} className="mt-1" rows={3} placeholder="Observações sobre andamento..." />
+                    <Textarea value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} className="mt-1 rounded-lg" rows={3} placeholder="Observações sobre andamento..." />
                   </div>
                 </>
               ) : (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <InfoField label="Status" value={statusCfg.label} />
-                    <InfoField label="Nível de Risco" value={<Badge className={cn('text-xs', riscoCfg.color)}>{riscoCfg.label}</Badge>} />
+                    <InfoField label="Nível de Risco" value={<Badge className={cn('text-xs rounded-full', riscoCfg.color)}>{riscoCfg.label}</Badge>} />
                     <InfoField label="Início Real" value={gestao?.data_inicio_real ?? '—'} />
                     <InfoField label="Prev. Término" value={gestao?.data_fim_previsto ?? '—'} />
                   </div>
@@ -470,7 +418,7 @@ export default function PEPDetalhePage() {
                   {gestao?.notas && (
                     <div>
                       <p className="text-xs font-medium text-muted-foreground mb-1">Notas de Gestão</p>
-                      <p className="text-sm text-foreground whitespace-pre-wrap bg-muted/30 rounded p-3">{gestao.notas}</p>
+                      <p className="text-sm text-foreground whitespace-pre-wrap bg-muted/20 rounded-xl p-4">{gestao.notas}</p>
                     </div>
                   )}
                 </div>
@@ -479,36 +427,33 @@ export default function PEPDetalhePage() {
           </Card>
 
           {/* Impedimentos */}
-          <Card>
+          <Card className="rounded-xl border-0 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-yellow-100 to-yellow-50 flex items-center justify-center">
+                  <AlertTriangle className="w-3.5 h-3.5 text-yellow-600" />
+                </div>
                 Impedimentos ({impedimentos.filter(i => !i.resolvido).length} abertos)
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex gap-2">
-                <Input
-                  placeholder="Descrever impedimento..."
-                  value={newImpedimento}
-                  onChange={e => setNewImpedimento(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleAddImpedimento()}
-                />
-                <Button size="sm" onClick={handleAddImpedimento} disabled={!newImpedimento.trim()}>
+                <Input placeholder="Descrever impedimento..." value={newImpedimento} onChange={e => setNewImpedimento(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddImpedimento()} className="rounded-lg" />
+                <Button size="sm" className="rounded-lg" onClick={handleAddImpedimento} disabled={!newImpedimento.trim()}>
                   <Plus className="w-4 h-4" />
                 </Button>
               </div>
               {impedimentos.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">Nenhum impedimento registrado</p>}
               <div className="space-y-1">
                 {impedimentos.map(imp => (
-                  <div key={imp.id} className="flex items-center gap-2 group">
+                  <div key={imp.id} className="flex items-center gap-2 group p-2 rounded-lg hover:bg-muted/30 transition-colors">
                     <Checkbox
                       checked={imp.resolvido}
                       onCheckedChange={checked => entry && toggleImpedimento.mutate({ id: imp.id, resolvido: !!checked, pep_entry_id: entry.id })}
                     />
                     <span className={cn('text-sm flex-1', imp.resolvido && 'line-through text-muted-foreground')}>{imp.descricao}</span>
                     <Button
-                      variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                      variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 rounded-lg"
                       onClick={() => entry && deleteImpedimento.mutate({ id: imp.id, pep_entry_id: entry.id })}
                     >
                       <Trash2 className="w-3 h-3" />
@@ -520,24 +465,23 @@ export default function PEPDetalhePage() {
           </Card>
 
           {/* Evidências */}
-          <Card>
+          <Card className="rounded-xl border-0 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Repositório de Evidências</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div
-                className="border-2 border-dashed border-muted-foreground/20 rounded-lg p-6 text-center hover:border-primary/40 transition-colors cursor-pointer"
+                className="border-2 border-dashed border-muted-foreground/15 rounded-xl p-8 text-center hover:border-primary/30 hover:bg-primary/5 transition-all duration-300 cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={e => { e.preventDefault(); e.stopPropagation() }}
                 onDrop={e => { e.preventDefault(); e.stopPropagation(); handleFileUpload(e.dataTransfer.files) }}
               >
-                <Upload className="w-6 h-6 mx-auto text-muted-foreground mb-2" />
+                <Upload className="w-6 h-6 mx-auto text-muted-foreground/50 mb-2" />
                 <p className="text-sm text-muted-foreground">Arraste arquivos ou clique para enviar</p>
-                <p className="text-xs text-muted-foreground/60">PDFs, imagens, documentos</p>
+                <p className="text-xs text-muted-foreground/50 mt-1">PDFs, imagens, documentos</p>
                 <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => handleFileUpload(e.target.files)} />
               </div>
 
-              {/* Gallery: images */}
               {evidencias.filter(f => isImageFile(f.name)).length > 0 && (
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1"><ImageIcon className="w-3 h-3" /> Imagens</p>
@@ -545,11 +489,11 @@ export default function PEPDetalhePage() {
                     {evidencias.filter(f => isImageFile(f.name)).map(f => {
                       const url = getEvidenciaUrl(decodedWbs, f.name)
                       return (
-                        <div key={f.name} className="relative group rounded overflow-hidden border aspect-square bg-muted cursor-pointer" onClick={() => setLightboxUrl(url)}>
-                          <img src={url} alt={f.name} className="w-full h-full object-cover" />
+                        <div key={f.name} className="relative group rounded-xl overflow-hidden border aspect-square bg-muted cursor-pointer hover:shadow-lg transition-all duration-300" onClick={() => setLightboxUrl(url)}>
+                          <img src={url} alt={f.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                           <Button
                             variant="destructive" size="icon"
-                            className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100"
+                            className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 rounded-lg"
                             onClick={e => { e.stopPropagation(); deleteEvidencia.mutate({ wbs: decodedWbs, fileName: f.name }) }}
                           >
                             <Trash2 className="w-3 h-3" />
@@ -561,7 +505,6 @@ export default function PEPDetalhePage() {
                 </div>
               )}
 
-              {/* Documents */}
               {evidencias.filter(f => !isImageFile(f.name)).length > 0 && (
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1"><FileText className="w-3 h-3" /> Documentos</p>
@@ -570,14 +513,14 @@ export default function PEPDetalhePage() {
                       const url = getEvidenciaUrl(decodedWbs, f.name)
                       const displayName = f.name.replace(/^\d+_/, '')
                       return (
-                        <div key={f.name} className="flex items-center gap-2 text-sm group">
+                        <div key={f.name} className="flex items-center gap-2 text-sm group p-2 rounded-lg hover:bg-muted/30 transition-colors">
                           <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                           <span className="flex-1 truncate">{displayName}</span>
                           <a href={url} target="_blank" rel="noopener noreferrer">
-                            <Button variant="ghost" size="icon" className="h-6 w-6"><Download className="w-3 h-3" /></Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 rounded-lg"><Download className="w-3 h-3" /></Button>
                           </a>
                           <Button
-                            variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                            variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 rounded-lg"
                             onClick={() => deleteEvidencia.mutate({ wbs: decodedWbs, fileName: f.name })}
                           >
                             <Trash2 className="w-3 h-3" />
@@ -596,24 +539,23 @@ export default function PEPDetalhePage() {
 
         {/* ─── Col 3: Sidebar ─────────────────────────────────────── */}
         <div className="space-y-6">
-          {/* Subatividades */}
           {children.length > 0 && (
-            <Card>
+            <Card className="rounded-xl border-0 shadow-sm">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Subatividades ({children.length})</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-1 max-h-64 overflow-y-auto">
+                <div className="space-y-1 max-h-64 overflow-y-auto custom-scrollbar">
                   {children.map(c => (
                     <Link
                       key={c.id}
                       to={`/pep/${encodeURIComponent(c.codigo_wbs ?? '')}`}
-                      className="flex items-center gap-2 text-sm hover:bg-muted/50 rounded px-2 py-1.5 transition-colors"
+                      className="flex items-center gap-2 text-sm hover:bg-muted/30 rounded-lg px-2 py-2 transition-all duration-200 hover-lift"
                     >
                       <ChevronRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
                       <span className="font-mono text-[10px] text-muted-foreground flex-shrink-0">{c.codigo_wbs}</span>
                       <span className="truncate text-foreground">{c.descricao}</span>
-                      <Badge variant="outline" className="text-[9px] ml-auto flex-shrink-0">{c.ref}</Badge>
+                      <Badge variant="outline" className="text-[9px] ml-auto flex-shrink-0 rounded-full">{c.ref}</Badge>
                     </Link>
                   ))}
                 </div>
@@ -621,8 +563,7 @@ export default function PEPDetalhePage() {
             </Card>
           )}
 
-          {/* Cronograma Físico */}
-          <Card>
+          <Card className="rounded-xl border-0 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Entregas Físicas</CardTitle>
             </CardHeader>
@@ -632,7 +573,7 @@ export default function PEPDetalhePage() {
                   const key = `fisica_${a}` as keyof PepEntry
                   const val = (entry as any)[key] as number | null
                   return (
-                    <div key={a} className={cn('rounded p-1.5', val === 1 ? 'bg-green-100 dark:bg-green-900/30' : 'bg-muted/30')}>
+                    <div key={a} className={cn('rounded-xl p-2 transition-colors', val === 1 ? 'bg-gradient-to-br from-green-100 to-green-50 dark:from-green-900/30 dark:to-green-900/10' : 'bg-muted/20')}>
                       <p className="text-[10px] text-muted-foreground">{a === 'eop' ? 'EOP' : a}</p>
                       <p className="text-xs font-semibold">{val === 1 ? '✓' : '—'}</p>
                     </div>
@@ -642,11 +583,10 @@ export default function PEPDetalhePage() {
             </CardContent>
           </Card>
 
-          {/* Histórico */}
-          <Card>
+          <Card className="rounded-xl border-0 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <Clock className="w-4 h-4" />
+                <Clock className="w-4 h-4 text-primary" />
                 Histórico de Alterações
               </CardTitle>
             </CardHeader>
@@ -654,14 +594,14 @@ export default function PEPDetalhePage() {
               {historico.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-2">Nenhuma alteração registrada</p>
               ) : (
-                <div className="space-y-2 max-h-80 overflow-y-auto">
+                <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
                   {historico.map(h => (
-                    <div key={h.id} className="text-xs border-l-2 border-primary/30 pl-3 py-1">
+                    <div key={h.id} className="text-xs border-l-2 border-primary/20 pl-3 py-1.5 hover:bg-muted/20 rounded-r-lg transition-colors">
                       <p className="font-medium text-foreground">{h.campo}</p>
                       <p className="text-muted-foreground">
                         {h.valor_anterior ?? '(vazio)'} → <span className="text-foreground">{h.valor_novo ?? '(vazio)'}</span>
                       </p>
-                      <p className="text-muted-foreground/60 text-[10px]">
+                      <p className="text-muted-foreground/50 text-[10px]">
                         {new Date(h.created_at).toLocaleString('pt-BR')} · {h.usuario}
                       </p>
                     </div>
@@ -675,8 +615,8 @@ export default function PEPDetalhePage() {
 
       {/* Lightbox */}
       <Dialog open={!!lightboxUrl} onOpenChange={() => setLightboxUrl(null)}>
-        <DialogContent className="max-w-4xl p-2">
-          {lightboxUrl && <img src={lightboxUrl} alt="Evidência" className="w-full h-auto rounded" />}
+        <DialogContent className="max-w-4xl p-2 rounded-2xl">
+          {lightboxUrl && <img src={lightboxUrl} alt="Evidência" className="w-full h-auto rounded-xl" />}
         </DialogContent>
       </Dialog>
     </div>
@@ -686,7 +626,7 @@ export default function PEPDetalhePage() {
 // ─── Helper components ────────────────────────────────────────────────────────
 function MiniCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-muted/40 p-3">
+    <div className="rounded-xl bg-gradient-to-b from-muted/40 to-muted/10 p-3 hover-lift">
       <p className="text-[10px] text-muted-foreground">{label}</p>
       <p className="text-sm font-semibold">{value}</p>
     </div>
@@ -696,8 +636,8 @@ function MiniCard({ label, value }: { label: string; value: string }) {
 function InfoField({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <p className="text-[10px] text-muted-foreground">{label}</p>
-      <div className="text-sm font-medium">{value}</div>
+      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
+      <div className="text-sm font-medium mt-0.5">{value}</div>
     </div>
   )
 }

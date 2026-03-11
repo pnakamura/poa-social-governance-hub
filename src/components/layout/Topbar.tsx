@@ -1,5 +1,5 @@
 import { useLocation } from 'react-router-dom'
-import { Bell, RefreshCw } from 'lucide-react'
+import { Bell, RefreshCw, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useQueryClient } from '@tanstack/react-query'
 import { useUltimaSyncLog } from '@/hooks/useSyncLog'
@@ -40,14 +40,20 @@ export function Topbar() {
     : null
 
   return (
-    <header className="h-14 border-b border-border bg-background/95 backdrop-blur-sm flex items-center justify-between px-6 sticky top-0 z-10">
+    <header className="h-14 glass-topbar border-b border-border/50 flex items-center justify-between px-6 sticky top-0 z-10">
+      {/* Bottom gradient accent */}
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+
       {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 text-sm">
-        <span className="text-muted-foreground">POA+SOCIAL</span>
+        <span className="text-muted-foreground font-medium gradient-bid-text">POA+SOCIAL</span>
         {parts.map((part, i) => (
           <span key={i} className="flex items-center gap-1.5">
-            <span className="text-muted-foreground">/</span>
-            <span className={i === parts.length - 1 ? 'font-medium text-foreground' : 'text-muted-foreground'}>
+            <ChevronRight className="w-3 h-3 text-muted-foreground/40" />
+            <span className={i === parts.length - 1
+              ? 'font-medium text-foreground'
+              : 'text-muted-foreground hover:text-foreground transition-colors cursor-default'
+            }>
               {part}
             </span>
           </span>
@@ -55,29 +61,30 @@ export function Topbar() {
       </nav>
 
       {/* Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8"
+          className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
           onClick={() => qc.invalidateQueries()}
           title="Atualizar dados"
         >
           <RefreshCw className="w-4 h-4" />
         </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8 relative" title="Notificações">
+        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg relative hover:bg-primary/10 hover:text-primary transition-colors" title="Notificações">
           <Bell className="w-4 h-4" />
+          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-accent" />
         </Button>
         {syncLabel && (
           <>
-            <div className="h-5 w-px bg-border" />
-            <span className="text-[10px] text-muted-foreground whitespace-nowrap" title="Última importação de dados">
+            <div className="h-5 w-px bg-border/60 mx-1" />
+            <span className="text-[10px] text-muted-foreground/70 whitespace-nowrap" title="Última importação de dados">
               sync {syncLabel}
             </span>
           </>
         )}
-        <div className="ml-2 h-5 w-px bg-border" />
-        <span className="text-xs text-muted-foreground">
+        <div className="h-5 w-px bg-border/60 mx-1" />
+        <span className="text-xs text-muted-foreground/70 font-medium">
           {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
         </span>
       </div>
