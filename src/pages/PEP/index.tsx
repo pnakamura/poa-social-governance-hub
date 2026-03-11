@@ -791,11 +791,41 @@ export default function PEPPage() {
   const [moeda, setMoeda] = useState<'USD' | 'BRL'>('USD')
   const [selectedEntry, setSelectedEntry] = useState<PepEntry | null>(null)
   const [activeTab, setActiveTab] = useState('hierarquia')
+  const [syncing, setSyncing] = useState(false)
 
+  const queryClient = useQueryClient()
   const { data: versoes = [] } = usePEPVersoes()
   const { data: entries = [], isLoading } = usePEPEntries(versao)
 
   const handleSelectEntry = (entry: PepEntry) => setSelectedEntry(entry)
+
+  const handleSync = useCallback(async () => {
+    setSyncing(true)
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || 'dvqnlnxkwcrxbctujajl'
+      const resp = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/sync-pep-sheets?versao=${versao}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' } }
+      )
+      const data = await resp.json()
+      if (data.success) {
+        toast.success(`Sincronização concluída: ${data.rows} registros importados`)
+        queryClient.invalidateQueries({ queryKey: ['pep'] })
+        queryClient.invalidateQueries({ queryKey: ['pep_kpis'] })
+        queryClient.invalidateQueries({ queryKey: ['pep_versoes'] })
+        queryClient.invalidateQueries({ queryKey: ['pep_desembolhos'] })
+        queryClient.invalidateQueries({ queryKey: ['pep_cronograma'] })
+        queryClient.invalidateQueries({ queryKey: ['pep_chart'] })
+      } else {
+        toast.error(`Erro na sincronização: ${data.error}`)
+      }
+    } catch (err) {
+      toast.error('Falha ao conectar com a Edge Function')
+      console.error(err)
+    } finally {
+      setSyncing(false)
+    }
+  }, [versao, queryClient])
 
   const handleSelectWBS = (wbs: string) => {
     const entry = entries.find(e => e.codigo_wbs === wbs)
