@@ -239,11 +239,11 @@ export default function PEPDetalhePage() {
 
   const handleSaveDescricao = useCallback(async () => {
     if (!entry) return
-    const { error } = await supabase.from('pep_entries').update({ descricao: descricaoEdit }).eq('id', entry.id)
-    if (error) { toast.error('Erro ao salvar descrição'); return }
-    await logChange(entry.id, 'descricao', entry.descricao ?? null, descricaoEdit)
+    const { error } = await supabase.from('pep_entries').update({ resumo_executivo: descricaoEdit }).eq('id', entry.id)
+    if (error) { toast.error('Erro ao salvar resumo'); return }
+    await logChange(entry.id, 'resumo_executivo', entry.resumo_executivo ?? null, descricaoEdit)
     setEditingDescricao(false)
-    toast.success('Descrição atualizada')
+    toast.success('Resumo executivo atualizado')
   }, [entry, descricaoEdit])
 
   if (loadingEntries) {
