@@ -13,6 +13,9 @@ import { EmptyState } from '@/components/shared/EmptyState'
 import { DataSourcePanel } from '@/components/DataSourcePanel'
 import { cn } from '@/lib/utils'
 import { Link } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { supabase } from '@/lib/supabase'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Legend,
 } from 'recharts'
