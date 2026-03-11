@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
           probabilidade: row.probabilidade || "Média",
           impacto: row.impacto || "Médio",
           mitigacao: row.mitigacao || null as any,
-          status: row.status || "Ativo",
+          status: ["Ativo", "Mitigado", "Aceito", "Eliminado"].includes(row.status) ? row.status : "Ativo",
         });
       }
     }
