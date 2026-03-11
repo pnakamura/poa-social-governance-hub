@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { ChevronRight, ChevronDown, Search, X, ExternalLink, DollarSign, Calendar, BarChart3, Activity, RefreshCw } from 'lucide-react'
+import { ChevronRight, ChevronDown, Search, X, ExternalLink, DollarSign, Calendar, BarChart3, Activity, RefreshCw, Filter } from 'lucide-react'
 import { usePEPEntries, usePEPVersoes, usePEPDesembolhos, usePEPCronogramaFisico } from '@/lib/queries/pep'
 import { usePMROutputs, usePMROutcomes } from '@/lib/queries/pmr'
 import { type PepEntry } from '@/lib/supabase'
@@ -27,12 +27,72 @@ const fUSD = (v: number | null | undefined) =>
 const fBRL = (v: number | null | undefined) =>
   v != null ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v) : '—'
 
-const fM = (v: number) =>
-  v >= 1_000_000 ? `US$ ${(v / 1_000_000).toFixed(1)}M` : v >= 1_000 ? `US$ ${(v / 1_000).toFixed(0)}k` : fUSD(v)
+const fShort = (v: number, moeda: 'USD' | 'BRL') => {
+  const prefix = moeda === 'BRL' ? 'R$' : 'US$'
+  if (Math.abs(v) >= 1_000_000) return `${prefix} ${(v / 1_000_000).toFixed(1)}M`
+  if (Math.abs(v) >= 1_000) return `${prefix} ${(v / 1_000).toFixed(0)}k`
+  return moeda === 'BRL' ? fBRL(v) : fUSD(v)
+}
 
+const REF_ORDER: Record<string, number> = { C: 0, SC: 1, P: 2, SP: 3, PT: 4 }
 const REF_INDENT: Record<string, number> = { C: 0, SC: 0, P: 1, SP: 2, PT: 3 }
 const ANOS = ['2025', '2026', '2027', '2028', '2029', 'EOP'] as const
 const COMP_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+
+const REF_LABELS: Record<string, string> = {
+  C: 'Componente',
+  SC: 'Subcomponente',
+  P: 'Produto',
+  SP: 'Subproduto',
+  PT: 'Pacote de Trabalho',
+}
+
+// ─── Sorting helper: proper hierarchy ─────────────────────────────────────────
+function sortHierarchically(entries: PepEntry[]): PepEntry[] {
+  return [...entries].sort((a, b) => {
+    // First by component
+    const compA = a.comp ?? 999
+    const compB = b.comp ?? 999
+    if (compA !== compB) return compA - compB
+
+    // C rows first within component
+    const refA = REF_ORDER[a.ref] ?? 99
+    const refB = REF_ORDER[b.ref] ?? 99
+
+    // For same comp, C comes first
+    if (a.ref === 'C' && b.ref !== 'C') return -1
+    if (b.ref === 'C' && a.ref !== 'C') return 1
+    // SC comes after C but before P
+    if (a.ref === 'SC' && b.ref !== 'SC' && b.ref !== 'C') return -1
+    if (b.ref === 'SC' && a.ref !== 'SC' && a.ref !== 'C') return 1
+
+    // Within same comp, sort by prod
+    const prodA = a.prod ?? 999
+    const prodB = b.prod ?? 999
+    if (prodA !== prodB) return prodA - prodB
+
+    // P before SP/PT within same prod
+    if (a.ref === 'P' && b.ref !== 'P' && b.ref !== 'C' && b.ref !== 'SC') return -1
+    if (b.ref === 'P' && a.ref !== 'P' && a.ref !== 'C' && a.ref !== 'SC') return 1
+
+    // Within same prod, sort by subp
+    const subpA = a.subp ?? 999
+    const subpB = b.subp ?? 999
+    if (subpA !== subpB) return subpA - subpB
+
+    // SP before PT within same subp
+    if (a.ref === 'SP' && b.ref === 'PT') return -1
+    if (b.ref === 'SP' && a.ref === 'PT') return 1
+
+    // Within same subp, sort by pct
+    const pctA = a.pct ?? 999
+    const pctB = b.pct ?? 999
+    if (pctA !== pctB) return pctA - pctB
+
+    // Fallback to ref order
+    return refA - refB
+  })
+}
 
 // ─── Delta cell ───────────────────────────────────────────────────────────────
 function DeltaCell({ atual, base }: { atual: number; base: number }) {
@@ -54,6 +114,18 @@ function EntregaCell({ flag }: { flag: number | null }) {
   )
 }
 
+// ─── Value accessors by moeda ─────────────────────────────────────────────────
+function getValues(r: PepEntry, moeda: 'USD' | 'BRL') {
+  return {
+    bid:   moeda === 'BRL' ? r.k_reais_bid   : r.n_atual,
+    local: moeda === 'BRL' ? r.l_reais_local : r.o_atual,
+    total: moeda === 'BRL' ? r.m_reais_total : r.p_atual,
+    baseBid:   moeda === 'USD' ? r.r_base : null,
+    baseLocal: moeda === 'USD' ? r.s_base : null,
+    baseTotal: moeda === 'USD' ? r.t_base : null,
+  }
+}
+
 // ─── DetailPanel lateral ──────────────────────────────────────────────────────
 function DetailPanel({ entry, onClose, moeda }: { entry: PepEntry | null; onClose: () => void; moeda: 'USD' | 'BRL' }) {
   useEffect(() => {
@@ -65,22 +137,12 @@ function DetailPanel({ entry, onClose, moeda }: { entry: PepEntry | null; onClos
   if (!entry) return null
 
   const f = moeda === 'BRL' ? fBRL : fUSD
-  const bid   = moeda === 'BRL' ? entry.k_reais_bid   : entry.n_atual
-  const local = moeda === 'BRL' ? entry.l_reais_local : entry.o_atual
-  const total = moeda === 'BRL' ? entry.m_reais_total : entry.p_atual
-  const base  = moeda === 'USD' ? entry.t_base : null
+  const vals = getValues(entry, moeda)
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/30 z-40"
-        onClick={onClose}
-        aria-hidden
-      />
-      {/* Panel */}
+      <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} aria-hidden />
       <aside className="fixed right-0 top-0 h-full w-[420px] max-w-[95vw] bg-background border-l border-border shadow-xl z-50 overflow-y-auto flex flex-col">
-        {/* Header */}
         <div className="flex items-start justify-between p-4 border-b sticky top-0 bg-background z-10">
           <div>
             {entry.codigo_wbs && (
@@ -101,7 +163,7 @@ function DetailPanel({ entry, onClose, moeda }: { entry: PepEntry | null; onClos
             <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Identificação</h3>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
               <div className="text-muted-foreground">Tipo</div>
-              <div><Badge variant="outline" className="text-[10px]">{entry.ref}</Badge></div>
+              <div><Badge variant="outline" className="text-[10px]">{entry.ref} — {REF_LABELS[entry.ref] ?? entry.ref}</Badge></div>
               {entry.comp != null && <><div className="text-muted-foreground">Componente</div><div>{entry.comp}</div></>}
               {entry.prod != null && <><div className="text-muted-foreground">Produto</div><div>{entry.prod}</div></>}
               {entry.subp != null && <><div className="text-muted-foreground">Subproduto</div><div>{entry.subp}</div></>}
@@ -138,20 +200,20 @@ function DetailPanel({ entry, onClose, moeda }: { entry: PepEntry | null; onClos
 
           {/* Valores */}
           <section>
-            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Valores</h3>
+            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Valores ({moeda})</h3>
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-muted-foreground border-b">
                   <th className="text-left pb-1">Origem</th>
-                  <th className="text-right pb-1">{moeda === 'BRL' ? 'R$ Atual' : 'US$ Atual'}</th>
-                  {moeda === 'USD' && <th className="text-right pb-1 text-muted-foreground/70">US$ Base</th>}
+                  <th className="text-right pb-1">Atual</th>
+                  {moeda === 'USD' && <th className="text-right pb-1 text-muted-foreground/70">Base</th>}
                 </tr>
               </thead>
-              <tbody className="space-y-1">
+              <tbody>
                 {[
-                  { label: 'BID',   v: bid,   b: moeda === 'USD' ? entry.r_base : null },
-                  { label: 'Local', v: local, b: moeda === 'USD' ? entry.s_base : null },
-                  { label: 'Total', v: total, b: base, bold: true },
+                  { label: 'BID',   v: vals.bid,   b: vals.baseBid },
+                  { label: 'Local', v: vals.local, b: vals.baseLocal },
+                  { label: 'Total', v: vals.total, b: vals.baseTotal, bold: true },
                 ].map(r => (
                   <tr key={r.label} className={cn('border-b border-border/30', r.bold && 'font-semibold')}>
                     <td className="py-1.5 text-muted-foreground">{r.label}</td>
@@ -161,7 +223,7 @@ function DetailPanel({ entry, onClose, moeda }: { entry: PepEntry | null; onClos
                 ))}
               </tbody>
             </table>
-            {moeda === 'USD' && entry.t_base > 0 && (
+            {moeda === 'USD' && (entry.t_base ?? 0) > 0 && (
               <div className="mt-1 text-right">
                 <DeltaCell atual={entry.p_atual} base={entry.t_base} />
               </div>
@@ -194,12 +256,12 @@ function DetailPanel({ entry, onClose, moeda }: { entry: PepEntry | null; onClos
                 {(['2025','2026','2027','2028','2029'] as const).map(ano => {
                   const v = entry[`desembolso_${ano}` as keyof PepEntry] as number | null
                   return v != null ? (
-                    <><div className="text-muted-foreground">{ano}</div><div className="tabular-nums col-span-2">{fM(v)}</div></>
+                    <><div className="text-muted-foreground">{ano}</div><div className="tabular-nums col-span-2">{fShort(v, 'USD')}</div></>
                   ) : null
                 })}
                 {entry.desembolso_total != null && (
                   <><div className="text-muted-foreground font-semibold">Total</div>
-                  <div className="tabular-nums font-semibold col-span-2">{fM(entry.desembolso_total)}</div></>
+                  <div className="tabular-nums font-semibold col-span-2">{fShort(entry.desembolso_total, 'USD')}</div></>
                 )}
               </div>
             </section>
@@ -211,7 +273,7 @@ function DetailPanel({ entry, onClose, moeda }: { entry: PepEntry | null; onClos
 }
 
 // ─── Tab 1: Hierarquia ────────────────────────────────────────────────────────
-function HierarchyTab({ entries, isLoading, moeda, onSelectEntry }: {
+function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry }: {
   entries: PepEntry[]
   isLoading: boolean
   moeda: 'USD' | 'BRL'
@@ -220,6 +282,15 @@ function HierarchyTab({ entries, isLoading, moeda, onSelectEntry }: {
   const [search, setSearch] = useState('')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [allExpanded, setAllExpanded] = useState(true)
+  const [filtroRef, setFiltroRef] = useState('todos')
+  const [filtroComp, setFiltroComp] = useState('todos')
+  const [showFilters, setShowFilters] = useState(false)
+
+  // Sort entries hierarchically
+  const entries = useMemo(() => sortHierarchically(rawEntries), [rawEntries])
+
+  const comps = useMemo(() => [...new Set(entries.filter(e => e.ref === 'C').map(e => e.comp))].sort((a, b) => (a ?? 0) - (b ?? 0)), [entries])
+  const refTypes = useMemo(() => [...new Set(entries.map(e => e.ref))].sort((a, b) => (REF_ORDER[a] ?? 99) - (REF_ORDER[b] ?? 99)), [entries])
 
   const getKey = (row: PepEntry) => {
     if (row.ref === 'C') return `C:${row.comp}`
@@ -249,7 +320,6 @@ function HierarchyTab({ entries, isLoading, moeda, onSelectEntry }: {
 
   const expandAll = () => { setCollapsed(new Set()); setAllExpanded(true) }
 
-  // Search: find matching IDs and their ancestors
   const matchingIds = useMemo(() => {
     if (!search.trim()) return null
     const term = search.toLowerCase()
@@ -263,10 +333,33 @@ function HierarchyTab({ entries, isLoading, moeda, onSelectEntry }: {
   }, [search, entries])
 
   const isVisible = (row: PepEntry): boolean => {
+    // Apply ref filter
+    if (filtroRef !== 'todos' && row.ref !== filtroRef) {
+      // But keep parent rows visible for context
+      if (filtroRef === 'PT') {
+        if (!['C', 'P', 'SP', 'PT'].includes(row.ref)) return false
+        // Only show ancestors of PT rows
+        if (row.ref !== 'PT') {
+          const hasPTChild = entries.some(e =>
+            e.ref === 'PT' && e.comp === row.comp &&
+            (row.ref === 'C' || (row.ref === 'P' && e.prod === row.prod) || (row.ref === 'SP' && e.prod === row.prod && e.subp === row.subp))
+          )
+          if (!hasPTChild) return false
+        }
+      } else if (filtroRef === 'SP') {
+        if (!['C', 'P', 'SP'].includes(row.ref)) return false
+      } else if (filtroRef === 'P') {
+        if (!['C', 'P'].includes(row.ref)) return false
+      } else if (filtroRef === 'C') {
+        if (row.ref !== 'C') return false
+      }
+    }
+
+    // Apply component filter
+    if (filtroComp !== 'todos' && String(row.comp) !== filtroComp) return false
+
     if (matchingIds !== null) {
-      // In search mode: show matching rows and their ancestors
       if (matchingIds.has(row.id)) return true
-      // Show ancestors of matches
       const hasMatchingChild = entries.some(e =>
         matchingIds.has(e.id) &&
         e.comp === row.comp &&
@@ -276,6 +369,7 @@ function HierarchyTab({ entries, isLoading, moeda, onSelectEntry }: {
       )
       return hasMatchingChild
     }
+
     if (row.ref === 'C' || row.ref === 'SC') return true
     if (row.ref === 'P') return !collapsed.has(`C:${row.comp}`)
     if (row.ref === 'SP') return !collapsed.has(`C:${row.comp}`) && !collapsed.has(`P:${row.comp}:${row.prod}`)
@@ -287,62 +381,129 @@ function HierarchyTab({ entries, isLoading, moeda, onSelectEntry }: {
     return true
   }
 
-  const totals = entries.filter(e => e.ref === 'C').reduce(
-    (acc, r) => ({ n: acc.n + (r.n_atual ?? 0), o: acc.o + (r.o_atual ?? 0), p: acc.p + (r.p_atual ?? 0), t: acc.t + (r.t_base ?? 0) }),
-    { n: 0, o: 0, p: 0, t: 0 }
-  )
+  // Totals from C rows, respecting moeda
+  const totals = useMemo(() => {
+    const cRows = entries.filter(e => e.ref === 'C' && (filtroComp === 'todos' || String(e.comp) === filtroComp))
+    if (moeda === 'BRL') {
+      return {
+        bid:   cRows.reduce((s, r) => s + (r.k_reais_bid ?? 0), 0),
+        local: cRows.reduce((s, r) => s + (r.l_reais_local ?? 0), 0),
+        total: cRows.reduce((s, r) => s + (r.m_reais_total ?? 0), 0),
+        base:  null as number | null,
+      }
+    }
+    return {
+      bid:   cRows.reduce((s, r) => s + (r.n_atual ?? 0), 0),
+      local: cRows.reduce((s, r) => s + (r.o_atual ?? 0), 0),
+      total: cRows.reduce((s, r) => s + (r.p_atual ?? 0), 0),
+      base:  cRows.reduce((s, r) => s + (r.t_base ?? 0), 0),
+    }
+  }, [entries, moeda, filtroComp])
 
   const f = moeda === 'BRL' ? fBRL : fUSD
-  const bid   = (r: PepEntry) => moeda === 'BRL' ? r.k_reais_bid   : r.n_atual
-  const local = (r: PepEntry) => moeda === 'BRL' ? r.l_reais_local : r.o_atual
-  const total = (r: PepEntry) => moeda === 'BRL' ? r.m_reais_total : r.p_atual
 
   const visible = entries.filter(isVisible)
 
   return (
     <div className="space-y-4">
       {/* KPI strip */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className={cn('grid gap-3', moeda === 'USD' ? 'grid-cols-4' : 'grid-cols-3')}>
         {[
-          { label: 'Total BID Atual', value: fUSD(totals.n) },
-          { label: 'Total Local Atual', value: fUSD(totals.o) },
-          { label: 'Total Atual', value: fUSD(totals.p) },
-          { label: 'Total Base', value: fUSD(totals.t) },
+          { label: `Total BID`, value: f(totals.bid) },
+          { label: `Total Local`, value: f(totals.local) },
+          { label: `Total Programa`, value: f(totals.total) },
+          ...(moeda === 'USD' && totals.base != null ? [{ label: 'Total Base', value: fUSD(totals.base) }] : []),
         ].map(item => (
           <Card key={item.label} className="p-3">
-            <p className="text-[10px] text-muted-foreground">{item.label}</p>
-            <p className="text-base font-bold tabular-nums mt-0.5">{item.value}</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{item.label}</p>
+            <p className="text-lg font-bold tabular-nums mt-0.5">{item.value}</p>
           </Card>
         ))}
       </div>
 
-      {/* Busca + controles */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar WBS ou descrição..."
-            className="pl-8 h-8 text-xs"
-          />
-          {search && (
-            <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-              <X className="w-3 h-3" />
-            </button>
-          )}
-        </div>
+      {/* Busca + controles + filtros */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar WBS ou descrição..."
+              className="pl-8 h-8 text-xs"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
 
-        {!search && (
-          <>
+          <Button
+            variant={showFilters ? 'default' : 'outline'}
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter className="w-3.5 h-3.5" />
+            Filtros
+            {(filtroRef !== 'todos' || filtroComp !== 'todos') && (
+              <Badge variant="secondary" className="ml-1 text-[9px] px-1 py-0">
+                {[filtroRef !== 'todos' ? 1 : 0, filtroComp !== 'todos' ? 1 : 0].reduce((a, b) => a + b, 0)}
+              </Badge>
+            )}
+          </Button>
+
+          {!search && (
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={allExpanded ? collapseAll : expandAll}>
               {allExpanded ? 'Recolher Tudo' : 'Expandir Tudo'}
             </Button>
-          </>
-        )}
+          )}
 
-        {search && matchingIds !== null && (
-          <span className="text-xs text-muted-foreground">{matchingIds.size} resultado(s)</span>
+          {search && matchingIds !== null && (
+            <span className="text-xs text-muted-foreground">{matchingIds.size} resultado(s)</span>
+          )}
+
+          <span className="text-xs text-muted-foreground ml-auto">{visible.length} linhas</span>
+        </div>
+
+        {/* Filter bar */}
+        {showFilters && (
+          <div className="flex items-center gap-2 flex-wrap p-3 bg-muted/30 rounded-lg border border-border/50">
+            <span className="text-xs font-medium text-muted-foreground">Nível:</span>
+            <Select value={filtroRef} onValueChange={setFiltroRef}>
+              <SelectTrigger className="w-48 h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os níveis</SelectItem>
+                {refTypes.map(r => (
+                  <SelectItem key={r} value={r}>{r} — {REF_LABELS[r] ?? r}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <span className="text-xs font-medium text-muted-foreground ml-2">Componente:</span>
+            <Select value={filtroComp} onValueChange={setFiltroComp}>
+              <SelectTrigger className="w-48 h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os componentes</SelectItem>
+                {comps.map(c => {
+                  const desc = entries.find(e => e.ref === 'C' && e.comp === c)?.descricao ?? `C${c}`
+                  return <SelectItem key={c!} value={String(c)}>{desc}</SelectItem>
+                })}
+              </SelectContent>
+            </Select>
+
+            {(filtroRef !== 'todos' || filtroComp !== 'todos') && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs text-muted-foreground"
+                onClick={() => { setFiltroRef('todos'); setFiltroComp('todos') }}
+              >
+                <X className="w-3 h-3 mr-1" /> Limpar
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
@@ -357,12 +518,12 @@ function HierarchyTab({ entries, isLoading, moeda, onSelectEntry }: {
             <table className="w-full text-xs">
               <thead>
                 <tr className="gradient-bid text-white">
-                  <th className="text-left px-3 py-2.5 min-w-[240px]">WBS / Descrição</th>
-                  <th className="text-right px-3 py-2.5">BID {moeda}</th>
-                  <th className="text-right px-3 py-2.5">Local {moeda}</th>
-                  <th className="text-right px-3 py-2.5 font-semibold">Total {moeda}</th>
-                  <th className="text-right px-3 py-2.5 text-white/70">Base US$</th>
-                  <th className="text-right px-3 py-2.5 text-white/70">Δ%</th>
+                  <th className="text-left px-3 py-2.5 min-w-[280px]">WBS / Descrição</th>
+                  <th className="text-right px-3 py-2.5">BID {moeda === 'BRL' ? 'R$' : 'US$'}</th>
+                  <th className="text-right px-3 py-2.5">Local {moeda === 'BRL' ? 'R$' : 'US$'}</th>
+                  <th className="text-right px-3 py-2.5 font-semibold">Total {moeda === 'BRL' ? 'R$' : 'US$'}</th>
+                  {moeda === 'USD' && <th className="text-right px-3 py-2.5 text-white/70">Base US$</th>}
+                  {moeda === 'USD' && <th className="text-right px-3 py-2.5 text-white/70">Δ%</th>}
                   <th className="text-center px-3 py-2.5 text-white/70">Tipo</th>
                 </tr>
               </thead>
@@ -375,6 +536,7 @@ function HierarchyTab({ entries, isLoading, moeda, onSelectEntry }: {
                   const isC  = row.ref === 'C'
                   const isPT = row.ref === 'PT'
                   const highlighted = search && matchingIds?.has(row.id)
+                  const vals = getValues(row, moeda)
 
                   return (
                     <tr
@@ -382,13 +544,14 @@ function HierarchyTab({ entries, isLoading, moeda, onSelectEntry }: {
                       className={cn(
                         'border-b border-border/40 transition-colors cursor-pointer',
                         isC ? 'bg-primary/5 hover:bg-primary/10 font-semibold' : 'hover:bg-muted/40',
+                        row.ref === 'P' && 'bg-muted/20',
                         isPT && 'text-muted-foreground',
                         highlighted && 'bg-yellow-50 dark:bg-yellow-900/20',
                       )}
                       onClick={() => onSelectEntry(row)}
                     >
                       <td className="px-3 py-2">
-                        <div className="flex items-center gap-1" style={{ paddingLeft: `${indent * 14}px` }}>
+                        <div className="flex items-center gap-1" style={{ paddingLeft: `${indent * 16}px` }}>
                           {canCollapse ? (
                             <button
                               onClick={e => { e.stopPropagation(); toggleCollapse(key) }}
@@ -404,22 +567,32 @@ function HierarchyTab({ entries, isLoading, moeda, onSelectEntry }: {
                               {row.codigo_wbs}
                             </span>
                           )}
-                          <span className={cn('truncate max-w-[240px]', isC && 'text-primary')} title={row.descricao ?? ''}>
+                          <span className={cn('truncate max-w-[260px]', isC && 'text-primary')} title={row.descricao ?? ''}>
                             {row.descricao}
                           </span>
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums">{f(bid(row))}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{f(local(row))}</td>
-                      <td className={cn('px-3 py-2 text-right tabular-nums', isC && 'font-semibold')}>{f(total(row))}</td>
-                      <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{row.t_base ? fUSD(row.t_base) : '—'}</td>
-                      <td className="px-3 py-2 text-right"><DeltaCell atual={row.p_atual ?? 0} base={row.t_base ?? 0} /></td>
+                      <td className="px-3 py-2 text-right tabular-nums">{f(vals.bid)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{f(vals.local)}</td>
+                      <td className={cn('px-3 py-2 text-right tabular-nums', isC && 'font-semibold')}>{f(vals.total)}</td>
+                      {moeda === 'USD' && <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{row.t_base ? fUSD(row.t_base) : '—'}</td>}
+                      {moeda === 'USD' && <td className="px-3 py-2 text-right"><DeltaCell atual={row.p_atual ?? 0} base={row.t_base ?? 0} /></td>}
                       <td className="px-3 py-2 text-center">
                         <Badge variant="outline" className="text-[10px] px-1.5">{row.ref}</Badge>
                       </td>
                     </tr>
                   )
                 })}
+                {/* Total row */}
+                <tr className="border-t-2 border-border bg-muted/20 font-semibold">
+                  <td className="px-3 py-2.5 text-sm">Total Programa</td>
+                  <td className="px-3 py-2.5 text-right tabular-nums">{f(totals.bid)}</td>
+                  <td className="px-3 py-2.5 text-right tabular-nums">{f(totals.local)}</td>
+                  <td className="px-3 py-2.5 text-right tabular-nums">{f(totals.total)}</td>
+                  {moeda === 'USD' && <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{totals.base != null ? fUSD(totals.base) : '—'}</td>}
+                  {moeda === 'USD' && <td className="px-3 py-2.5 text-right">{totals.base != null && totals.base > 0 ? <DeltaCell atual={totals.total} base={totals.base} /> : '—'}</td>}
+                  <td className="px-3 py-2.5" />
+                </tr>
               </tbody>
             </table>
           </div>
@@ -452,7 +625,6 @@ function CronogramaTab({ onSelectWBS, allEntries }: { onSelectWBS: (wbs: string)
   if (isLoading) return <div className="space-y-2 animate-pulse">{[...Array(6)].map((_, i) => <div key={i} className="h-8 bg-muted rounded" />)}</div>
   if (rows.length === 0) return <EmptyState icon={Calendar} title="Nenhuma entrega física cadastrada" description="Importe o PEP com os dados de entregas físicas (cols AD-AI) para visualizar o cronograma." />
 
-  // Group by componente
   const byComp = comps.reduce<Record<string, typeof filtered>>((acc, comp) => {
     const key = String(comp)
     const items = filtered.filter(r => String(r.comp) === key)
@@ -462,7 +634,6 @@ function CronogramaTab({ onSelectWBS, allEntries }: { onSelectWBS: (wbs: string)
 
   return (
     <div className="space-y-4">
-      {/* Filtros */}
       <div className="flex gap-2 flex-wrap items-center">
         <Select value={filtroComp} onValueChange={setFiltroComp}>
           <SelectTrigger className="w-44 h-8 text-xs"><SelectValue placeholder="Componente" /></SelectTrigger>
@@ -541,7 +712,7 @@ function CronogramaTab({ onSelectWBS, allEntries }: { onSelectWBS: (wbs: string)
 }
 
 // ─── Tab 3: Desembolsos ───────────────────────────────────────────────────────
-function DesembolsosTab() {
+function DesembolsosTab({ moeda }: { moeda: 'USD' | 'BRL' }) {
   const { data: compRows = [], isLoading } = usePEPDesembolhos()
 
   const chartData = useMemo(() => {
@@ -572,22 +743,22 @@ function DesembolsosTab() {
   if (isLoading) return <div className="space-y-2 animate-pulse">{[...Array(4)].map((_, i) => <div key={i} className="h-20 bg-muted rounded" />)}</div>
   if (compRows.length === 0) return <EmptyState icon={DollarSign} title="Dados de desembolso indisponíveis" description="Importe o PEP expandido para visualizar os desembolsos anuais." />
 
+  const prefix = moeda === 'BRL' ? 'R$' : 'US$'
+
   return (
     <div className="space-y-5">
-      {/* KPIs anuais */}
       <div className="grid grid-cols-5 gap-2">
         {totaisPorAno.map(({ ano, total }) => (
           <Card key={ano} className="p-3">
             <p className="text-[10px] text-muted-foreground">{ano}</p>
-            <p className="text-sm font-bold tabular-nums mt-0.5">{fM(total)}</p>
+            <p className="text-sm font-bold tabular-nums mt-0.5">{fShort(total, moeda)}</p>
           </Card>
         ))}
       </div>
 
-      {/* Gráfico Area empilhado */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Desembolso Previsto por Componente (US$)</CardTitle>
+          <CardTitle className="text-sm">Desembolso Previsto por Componente ({prefix})</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={280}>
@@ -595,12 +766,12 @@ function DesembolsosTab() {
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
               <XAxis dataKey="ano" tick={{ fontSize: 11 }} />
               <YAxis
-                tickFormatter={v => `US$${(Number(v)/1e6).toFixed(0)}M`}
+                tickFormatter={v => `${prefix}${(Number(v)/1e6).toFixed(0)}M`}
                 tick={{ fontSize: 10 }}
                 width={60}
               />
               <RTooltip
-                formatter={(value: number, name: string) => [fM(value), name]}
+                formatter={(value: number, name: string) => [fShort(value, moeda), name]}
                 contentStyle={{ fontSize: '11px' }}
               />
               <Legend wrapperStyle={{ fontSize: '11px' }} />
@@ -620,7 +791,6 @@ function DesembolsosTab() {
         </CardContent>
       </Card>
 
-      {/* Tabela de desembolso */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm">Desembolso por Componente</CardTitle>
@@ -643,18 +813,18 @@ function DesembolsosTab() {
                     <td className="px-3 py-2 font-medium max-w-[200px] truncate" title={r.descricao ?? ''}>{r.descricao}</td>
                     {(['2025','2026','2027','2028','2029'] as const).map(ano => {
                       const key = `desembolso_${ano}` as keyof typeof r
-                      return <td key={ano} className="px-3 py-2 text-right tabular-nums">{fM((r[key] as number | null) ?? 0)}</td>
+                      return <td key={ano} className="px-3 py-2 text-right tabular-nums">{fShort((r[key] as number | null) ?? 0, moeda)}</td>
                     })}
-                    <td className="px-3 py-2 text-right tabular-nums font-semibold">{fM((r.desembolso_total as number | null) ?? 0)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums font-semibold">{fShort((r.desembolso_total as number | null) ?? 0, moeda)}</td>
                   </tr>
                 ))}
                 <tr className="border-t-2 border-border bg-muted/20 font-semibold">
                   <td className="px-3 py-2">Total Programa</td>
                   {totaisPorAno.map(({ ano, total }) => (
-                    <td key={ano} className="px-3 py-2 text-right tabular-nums">{fM(total)}</td>
+                    <td key={ano} className="px-3 py-2 text-right tabular-nums">{fShort(total, moeda)}</td>
                   ))}
                   <td className="px-3 py-2 text-right tabular-nums">
-                    {fM(compRows.reduce((s, r) => s + ((r.desembolso_total as number | null) ?? 0), 0))}
+                    {fShort(compRows.reduce((s, r) => s + ((r.desembolso_total as number | null) ?? 0), 0), moeda)}
                   </td>
                 </tr>
               </tbody>
@@ -671,7 +841,6 @@ function PMRTab({ pepEntries }: { pepEntries: PepEntry[] }) {
   const { data: outputs = [], isLoading: loadingOut } = usePMROutputs()
   const { data: outcomes = [], isLoading: loadingOc } = usePMROutcomes()
 
-  // Mapa pmr_ref → pep entries PT
   const pepByPmrRef = useMemo(() => {
     const m: Record<string, PepEntry[]> = {}
     pepEntries.filter(e => e.ref === 'PT' && e.pmr_ref).forEach(e => {
@@ -691,7 +860,6 @@ function PMRTab({ pepEntries }: { pepEntries: PepEntry[] }) {
 
   return (
     <div className="space-y-6">
-      {/* Outputs */}
       <div>
         <h3 className="text-sm font-semibold mb-2">PMR Outputs — Indicadores Físicos</h3>
         {loadingOut ? (
@@ -743,7 +911,6 @@ function PMRTab({ pepEntries }: { pepEntries: PepEntry[] }) {
         )}
       </div>
 
-      {/* Outcomes */}
       <div>
         <h3 className="text-sm font-semibold mb-2">PMR Outcomes — Indicadores de Impacto</h3>
         {loadingOc ? (
@@ -834,7 +1001,6 @@ export default function PEPPage() {
 
   return (
     <div className="space-y-4">
-      {/* Cabeçalho */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold">PEP RS — Plano de Execução</h1>
@@ -843,7 +1009,6 @@ export default function PEPPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Sync button */}
           <Button
             variant="outline"
             size="sm"
@@ -855,7 +1020,6 @@ export default function PEPPage() {
             {syncing ? 'Sincronizando...' : 'Sincronizar Planilha'}
           </Button>
 
-          {/* Toggle USD/BRL */}
           <div className="flex rounded-md border border-border overflow-hidden text-xs">
             <button
               className={cn('px-3 py-1.5 transition-colors', moeda === 'USD' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}
@@ -878,7 +1042,6 @@ export default function PEPPage() {
         </div>
       </div>
 
-      {/* DataSourcePanel */}
       <DataSourcePanel
         source="PEP RS — PEP_PMR.xlsx"
         url="https://drive.google.com/drive/folders/1NQKPrkIWBUBcR0tQUU3vwOKDc5_YkuYl"
@@ -887,7 +1050,6 @@ export default function PEPPage() {
         defaultOpen={false}
       />
 
-      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="hierarquia" className="flex items-center gap-1.5">
@@ -918,7 +1080,7 @@ export default function PEPPage() {
         </TabsContent>
 
         <TabsContent value="desembolsos" className="mt-4">
-          <DesembolsosTab />
+          <DesembolsosTab moeda={moeda} />
         </TabsContent>
 
         <TabsContent value="pmr" className="mt-4">
@@ -926,7 +1088,6 @@ export default function PEPPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Detail Panel lateral */}
       {selectedEntry && (
         <DetailPanel
           entry={selectedEntry}
