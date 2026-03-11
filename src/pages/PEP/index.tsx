@@ -714,17 +714,35 @@ function CronogramaTab({ entries, onSelectWBS }: { entries: PepEntry[]; onSelect
 }
 
 // ─── Tab 3: Desembolsos (revised — uses filtered entries) ─────────────────────
-function DesembolsosTab({ entries, moeda }: { entries: PepEntry[]; moeda: 'USD' | 'BRL' }) {
-  // Aggregate by component from entries (works with secretaria filter)
+function DesembolsosTab({ entries, moeda, filtroSecretaria }: { entries: PepEntry[]; moeda: 'USD' | 'BRL'; filtroSecretaria: string }) {
+  // When no secretaria filter, use C rows directly (they have correct totals from the spreadsheet).
+  // When filtered, aggregate from PT rows of the filtered set.
   const compRows = useMemo(() => {
     const comps = [...new Set(entries.filter(e => e.ref === 'C').map(e => e.comp))].sort((a, b) => (a ?? 0) - (b ?? 0))
-    // Get PT rows that have disbursement data
-    const ptRows = entries.filter(e => e.ref === 'PT')
 
+    if (filtroSecretaria === 'todos') {
+      // Use C row data directly — accurate totals
+      return comps.map(comp => {
+        const cRow = entries.find(e => e.ref === 'C' && e.comp === comp)
+        if (!cRow) return null
+        return {
+          comp,
+          descricao: cRow.descricao ?? `Componente ${comp}`,
+          desembolso_2025: cRow.desembolso_2025 ?? 0,
+          desembolso_2026: cRow.desembolso_2026 ?? 0,
+          desembolso_2027: cRow.desembolso_2027 ?? 0,
+          desembolso_2028: cRow.desembolso_2028 ?? 0,
+          desembolso_2029: cRow.desembolso_2029 ?? 0,
+          desembolso_total: cRow.desembolso_total ?? 0,
+        }
+      }).filter(Boolean).filter(r => r!.desembolso_total > 0 || r!.desembolso_2025 > 0) as NonNullable<typeof compRows[0]>[]
+    }
+
+    // Filtered by secretaria — aggregate from PT rows
+    const ptRows = entries.filter(e => e.ref === 'PT')
     return comps.map(comp => {
       const cRow = entries.find(e => e.ref === 'C' && e.comp === comp)
       const pts = ptRows.filter(e => e.comp === comp)
-      // Sum PT-level disbursements
       const sumField = (field: keyof PepEntry) => pts.reduce((s, r) => s + ((r[field] as number | null) ?? 0), 0)
       return {
         comp,
@@ -737,7 +755,7 @@ function DesembolsosTab({ entries, moeda }: { entries: PepEntry[]; moeda: 'USD' 
         desembolso_total: sumField('desembolso_total'),
       }
     }).filter(r => r.desembolso_total > 0 || r.desembolso_2025 > 0)
-  }, [entries])
+  }, [entries, filtroSecretaria])
 
   const chartData = useMemo(() => {
     return ANOS_DESEMBOLSO.map(ano => {
