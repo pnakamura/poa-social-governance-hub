@@ -568,9 +568,13 @@ function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry }: 
                             <span className="w-4 flex-shrink-0" />
                           )}
                           {row.codigo_wbs && (
-                            <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1 rounded flex-shrink-0">
+                            <Link
+                              to={`/pep/${encodeURIComponent(row.codigo_wbs)}`}
+                              className="font-mono text-[10px] text-primary bg-primary/10 px-1 rounded flex-shrink-0 hover:underline"
+                              onClick={e => e.stopPropagation()}
+                            >
                               {row.codigo_wbs}
-                            </span>
+                            </Link>
                           )}
                           <span className={cn('truncate max-w-[260px]', isC && 'text-primary')} title={row.descricao ?? ''}>
                             {row.descricao}
