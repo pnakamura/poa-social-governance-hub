@@ -1275,7 +1275,7 @@ export default function PEPPage() {
         </TabsContent>
 
         <TabsContent value="desembolsos" className="mt-4">
-          <DesembolsosTab entries={filteredEntries} moeda={moeda} filtroSecretaria={filtroSecretaria} />
+          <DesembolsosTab entries={filteredEntries} moeda={moeda} isFiltered={isFiltered} />
         </TabsContent>
 
         <TabsContent value="pmr" className="mt-4">
