@@ -394,6 +394,8 @@ function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry }: 
     return true
   }
 
+  const f = moeda === 'BRL' ? fBRL : fUSD
+
   const totals = useMemo(() => {
     const cRows = entries.filter(e => e.ref === 'C' && (filtroComp === 'todos' || String(e.comp) === filtroComp))
     if (moeda === 'BRL') {
@@ -412,27 +414,10 @@ function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry }: 
     }
   }, [entries, moeda, filtroComp])
 
-  const f = moeda === 'BRL' ? fBRL : fUSD
-
   const visible = entries.filter(isVisible)
 
   return (
     <div className="space-y-4">
-      {/* KPI strip */}
-      <div className={cn('grid gap-3', moeda === 'USD' ? 'grid-cols-4' : 'grid-cols-3')}>
-        {[
-          { label: `Total BID`, value: f(totals.bid) },
-          { label: `Total Local`, value: f(totals.local) },
-          { label: `Total Programa`, value: f(totals.total) },
-          ...(moeda === 'USD' && totals.base != null ? [{ label: 'Total Base', value: fUSD(totals.base) }] : []),
-        ].map(item => (
-          <Card key={item.label} className="p-3">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{item.label}</p>
-            <p className="text-lg font-bold tabular-nums mt-0.5">{item.value}</p>
-          </Card>
-        ))}
-      </div>
-
       {/* Busca + controles + filtros */}
       <div className="space-y-2">
         <div className="flex items-center gap-2 flex-wrap">
