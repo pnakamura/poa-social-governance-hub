@@ -23,6 +23,8 @@ import {
   usePepImpedimentos, useAddImpedimento, useToggleImpedimento, useDeleteImpedimento,
   usePepHistorico,
   usePepEvidencias, useUploadEvidencia, useDeleteEvidencia, getEvidenciaUrl,
+  usePepRiscos, useAddPepRisco, useUpdatePepRisco, useDeletePepRisco,
+  type PepRisco,
 } from '@/lib/queries/pep-gestao'
 
 // ─── Formatadores ─────────────────────────────────────────────────────────────
