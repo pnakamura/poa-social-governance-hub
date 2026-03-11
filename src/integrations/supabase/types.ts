@@ -926,6 +926,7 @@ export type Database = {
           probabilidade: number
           responsavel: string | null
           status: string | null
+          tipo: string
         }
         Insert: {
           atualizado_em?: string | null
@@ -939,6 +940,7 @@ export type Database = {
           probabilidade: number
           responsavel?: string | null
           status?: string | null
+          tipo?: string
         }
         Update: {
           atualizado_em?: string | null
@@ -952,6 +954,7 @@ export type Database = {
           probabilidade?: number
           responsavel?: string | null
           status?: string | null
+          tipo?: string
         }
         Relationships: []
       }

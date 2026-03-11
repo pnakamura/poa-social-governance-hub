@@ -1,11 +1,16 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react'
+import { Plus, Pencil, Trash2, AlertTriangle, ExternalLink } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { HelpTooltip } from '@/components/HelpTooltip'
-import { useRiscos, useCreateRisco, useUpdateRisco, useDeleteRisco } from '@/lib/queries/risks'
+import {
+  useRiscosByTipo, useCreateRisco, useUpdateRisco, useDeleteRisco,
+  usePepRiscosAll, probToNum, impToNum, type PepRiscoWithWbs,
+} from '@/lib/queries/risks'
 import { type Risco } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RiscoNivelBadge } from '@/components/shared/StatusBadge'
 import { EmptyState } from '@/components/shared/EmptyState'
 import {
@@ -23,13 +28,69 @@ const NIVEIS = [1, 2, 3, 4, 5]
 const MATRIX_COLORS = (nivel: number) => {
   if (nivel >= 16) return 'bg-risk-critical/70 text-white'
   if (nivel >= 10) return 'bg-risk-high/70 text-white'
-  if (nivel >= 5)  return 'bg-risk-medium/80'
-  if (nivel >= 2)  return 'bg-risk-low/70'
+  if (nivel >= 5) return 'bg-risk-medium/80'
+  if (nivel >= 2) return 'bg-risk-low/70'
   return 'bg-risk-minimal/60'
 }
 
-export default function Risks() {
-  const { data: riscos = [], isLoading } = useRiscos()
+// ─── Heatmap Component ──────────────────────────────────────────────────
+
+function Heatmap({
+  countFn,
+  selectedCell,
+  onCellClick,
+}: {
+  countFn: (prob: number, imp: number) => number
+  selectedCell: { prob: number; imp: number } | null
+  onCellClick: (prob: number, imp: number) => void
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm">Mapa de Calor (5×5)</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-1">
+          <div className="flex gap-1 mb-2">
+            <div className="w-16 text-xs text-muted-foreground text-right pr-2 self-end pb-1">Prob→</div>
+            {NIVEIS.map(p => (
+              <div key={p} className="flex-1 text-center text-xs font-medium text-muted-foreground">{p}</div>
+            ))}
+          </div>
+          {[...NIVEIS].reverse().map(imp => (
+            <div key={imp} className="flex gap-1 items-center">
+              <div className="w-16 text-xs text-muted-foreground text-right pr-2">{imp}</div>
+              {NIVEIS.map(prob => {
+                const nivel = prob * imp
+                const count = countFn(prob, imp)
+                const isSelected = selectedCell?.prob === prob && selectedCell?.imp === imp
+                return (
+                  <button
+                    key={prob}
+                    onClick={() => onCellClick(prob, imp)}
+                    className={cn(
+                      'flex-1 aspect-square rounded risk-cell flex items-center justify-center text-xs font-medium',
+                      MATRIX_COLORS(nivel),
+                      isSelected && 'ring-2 ring-primary ring-offset-1'
+                    )}
+                  >
+                    {count > 0 ? count : ''}
+                  </button>
+                )
+              })}
+            </div>
+          ))}
+          <div className="text-[10px] text-muted-foreground text-center mt-2">← Impacto</div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ─── Strategic / Tactical Tab ───────────────────────────────────────────
+
+function RiscoTab({ tipo }: { tipo: 'Estratégico' | 'Tático' }) {
+  const { data: riscos = [], isLoading } = useRiscosByTipo(tipo)
   const createRisco = useCreateRisco()
   const updateRisco = useUpdateRisco()
   const deleteRisco = useDeleteRisco()
@@ -39,7 +100,7 @@ export default function Risks() {
   const [dialogOpen, setDialogOpen] = useState(false)
 
   const openNew = () => {
-    setEditingRisco({ probabilidade: 3, impacto: 3, categoria: 'Financeiro', status: 'Ativo' })
+    setEditingRisco({ probabilidade: 3, impacto: 3, categoria: 'Financeiro', status: 'Ativo', tipo })
     setDialogOpen(true)
   }
 
@@ -48,7 +109,7 @@ export default function Risks() {
     if (editingRisco.id) {
       await updateRisco.mutateAsync(editingRisco as Risco)
     } else {
-      await createRisco.mutateAsync(editingRisco as Omit<Risco, 'id' | 'nivel' | 'criado_em' | 'atualizado_em'>)
+      await createRisco.mutateAsync({ ...editingRisco, tipo } as Omit<Risco, 'id' | 'nivel' | 'criado_em' | 'atualizado_em'>)
     }
     setDialogOpen(false)
   }
@@ -57,69 +118,27 @@ export default function Risks() {
     ? riscos.filter(r => r.probabilidade === selectedCell.prob && r.impacto === selectedCell.imp)
     : riscos
 
-  // Build matrix data
   const matrixCount = (prob: number, imp: number) =>
     riscos.filter(r => r.probabilidade === prob && r.impacto === imp && r.status === 'Ativo').length
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold">Matriz de Riscos</h1>
-            <HelpTooltip id="matriz-riscos" />
-          </div>
-          <p className="text-sm text-muted-foreground mt-0.5">Registro e monitoramento de riscos do programa</p>
-        </div>
+    <>
+      <div className="flex justify-end mb-4">
         <Button onClick={openNew} className="gap-2">
           <Plus className="w-4 h-4" />
-          Novo Risco
+          Novo Risco {tipo}
         </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Matrix */}
-        <Card className="lg:col-span-1">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Mapa de Calor (5×5)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              <div className="flex gap-1 mb-2">
-                <div className="w-16 text-xs text-muted-foreground text-right pr-2 self-end pb-1">Prob→</div>
-                {NIVEIS.map(p => (
-                  <div key={p} className="flex-1 text-center text-xs font-medium text-muted-foreground">{p}</div>
-                ))}
-              </div>
-              {[...NIVEIS].reverse().map(imp => (
-                <div key={imp} className="flex gap-1 items-center">
-                  <div className="w-16 text-xs text-muted-foreground text-right pr-2">{imp}</div>
-                  {NIVEIS.map(prob => {
-                    const nivel = prob * imp
-                    const count = matrixCount(prob, imp)
-                    const isSelected = selectedCell?.prob === prob && selectedCell?.imp === imp
-                    return (
-                      <button
-                        key={prob}
-                        onClick={() => setSelectedCell(isSelected ? null : { prob, imp })}
-                        className={cn(
-                          'flex-1 aspect-square rounded risk-cell flex items-center justify-center text-xs font-medium',
-                          MATRIX_COLORS(nivel),
-                          isSelected && 'ring-2 ring-primary ring-offset-1'
-                        )}
-                      >
-                        {count > 0 ? count : ''}
-                      </button>
-                    )
-                  })}
-                </div>
-              ))}
-              <div className="text-[10px] text-muted-foreground text-center mt-2">← Impacto</div>
-            </div>
-          </CardContent>
-        </Card>
+        <Heatmap
+          countFn={matrixCount}
+          selectedCell={selectedCell}
+          onCellClick={(prob, imp) =>
+            setSelectedCell(prev => (prev?.prob === prob && prev?.imp === imp ? null : { prob, imp }))
+          }
+        />
 
-        {/* Registry */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2 flex-row justify-between items-center">
             <CardTitle className="text-sm">
@@ -190,7 +209,7 @@ export default function Risks() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingRisco?.id ? 'Editar Risco' : 'Novo Risco'}</DialogTitle>
+            <DialogTitle>{editingRisco?.id ? 'Editar Risco' : `Novo Risco ${tipo}`}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
@@ -274,6 +293,140 @@ export default function Risks() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </>
+  )
+}
+
+// ─── Operational Tab (read-only, from pep_riscos) ───────────────────────
+
+function OperacionalTab() {
+  const { data: pepRiscos = [], isLoading } = usePepRiscosAll()
+  const [selectedCell, setSelectedCell] = useState<{ prob: number; imp: number } | null>(null)
+
+  const activeRiscos = pepRiscos.filter(r => r.status === 'Ativo')
+
+  const matrixCount = (prob: number, imp: number) =>
+    activeRiscos.filter(r => probToNum(r.probabilidade) === prob && impToNum(r.impacto) === imp).length
+
+  const filteredRiscos = selectedCell
+    ? pepRiscos.filter(r => probToNum(r.probabilidade) === selectedCell.prob && impToNum(r.impacto) === selectedCell.imp)
+    : pepRiscos
+
+  const nivelBadge = (r: PepRiscoWithWbs) => {
+    const nivel = probToNum(r.probabilidade) * impToNum(r.impacto)
+    return <RiscoNivelBadge nivel={nivel} />
+  }
+
+  return (
+    <>
+      <div className="mb-4">
+        <p className="text-sm text-muted-foreground">
+          Riscos operacionais vinculados aos itens PEP. Para editar, acesse o cockpit do item.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <Heatmap
+          countFn={matrixCount}
+          selectedCell={selectedCell}
+          onCellClick={(prob, imp) =>
+            setSelectedCell(prev => (prev?.prob === prob && prev?.imp === imp ? null : { prob, imp }))
+          }
+        />
+
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2 flex-row justify-between items-center">
+            <CardTitle className="text-sm">
+              Riscos Operacionais (PEP)
+              {selectedCell && (
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                  (P={selectedCell.prob} × I={selectedCell.imp})
+                </span>
+              )}
+            </CardTitle>
+            {selectedCell && (
+              <Button variant="ghost" size="sm" onClick={() => setSelectedCell(null)} className="text-xs h-7">
+                Limpar filtro
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent className="p-0">
+            {isLoading ? (
+              <div className="p-4 space-y-2 animate-pulse">
+                {[...Array(4)].map((_, i) => <div key={i} className="h-12 bg-muted rounded" />)}
+              </div>
+            ) : filteredRiscos.length === 0 ? (
+              <div className="p-4">
+                <EmptyState icon={AlertTriangle} title="Nenhum risco operacional" description="Os riscos operacionais são cadastrados nos cockpits PEP." />
+              </div>
+            ) : (
+              <div className="divide-y divide-border/50 max-h-[500px] overflow-y-auto">
+                {filteredRiscos.map(risco => (
+                  <div key={risco.id} className="px-4 py-3 flex items-start gap-3 hover:bg-muted/20">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        {nivelBadge(risco)}
+                        <Badge variant="outline" className="text-xs">{risco.probabilidade} × {risco.impacto}</Badge>
+                        <Badge variant="secondary" className="text-xs font-mono">{risco.codigo_wbs || '—'}</Badge>
+                      </div>
+                      <p className="text-sm">{risco.titulo_risco}</p>
+                      {risco.descricao_pep && (
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{risco.descricao_pep}</p>
+                      )}
+                      {risco.mitigacao && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          <span className="font-medium">Mitigação:</span> {risco.mitigacao}
+                        </p>
+                      )}
+                    </div>
+                    {risco.codigo_wbs && (
+                      <Link
+                        to={`/pep/${risco.codigo_wbs}`}
+                        className="flex items-center gap-1 text-xs text-primary hover:underline flex-shrink-0"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        Cockpit
+                      </Link>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </>
+  )
+}
+
+// ─── Main Page ──────────────────────────────────────────────────────────
+
+export default function Risks() {
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-2">
+        <h1 className="text-2xl font-bold">Matriz de Riscos</h1>
+        <HelpTooltip id="matriz-riscos" />
+      </div>
+      <p className="text-sm text-muted-foreground -mt-3">Registro e monitoramento de riscos do programa</p>
+
+      <Tabs defaultValue="estrategico">
+        <TabsList>
+          <TabsTrigger value="estrategico">Estratégicos</TabsTrigger>
+          <TabsTrigger value="tatico">Táticos</TabsTrigger>
+          <TabsTrigger value="operacional">Operacionais</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="estrategico">
+          <RiscoTab tipo="Estratégico" />
+        </TabsContent>
+        <TabsContent value="tatico">
+          <RiscoTab tipo="Tático" />
+        </TabsContent>
+        <TabsContent value="operacional">
+          <OperacionalTab />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

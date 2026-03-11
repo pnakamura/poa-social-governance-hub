@@ -1,0 +1,1 @@
+ALTER TABLE public.riscos ADD COLUMN tipo text NOT NULL DEFAULT 'Estratégico';
