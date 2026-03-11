@@ -51,6 +51,7 @@ export type PepEntry = {
   desembolso_2028: number | null      // col AM
   desembolso_2029: number | null      // col AN
   desembolso_total: number | null     // col AO — total US$
+  resumo_executivo: string | null     // descrição detalhada / resumo executivo
 }
 
 export type PmrOutput = {
