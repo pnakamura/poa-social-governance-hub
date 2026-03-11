@@ -533,6 +533,60 @@ export type Database = {
           },
         ]
       }
+      pep_riscos: {
+        Row: {
+          created_at: string
+          descricao: string
+          id: string
+          impacto: string
+          mitigacao: string | null
+          pep_entry_id: string
+          probabilidade: string
+          risco_global_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao: string
+          id?: string
+          impacto?: string
+          mitigacao?: string | null
+          pep_entry_id: string
+          probabilidade?: string
+          risco_global_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          id?: string
+          impacto?: string
+          mitigacao?: string | null
+          pep_entry_id?: string
+          probabilidade?: string
+          risco_global_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pep_riscos_pep_entry_id_fkey"
+            columns: ["pep_entry_id"]
+            isOneToOne: false
+            referencedRelation: "pep_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pep_riscos_risco_global_id_fkey"
+            columns: ["risco_global_id"]
+            isOneToOne: false
+            referencedRelation: "riscos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pmr_outcomes: {
         Row: {
           codigo: string | null
