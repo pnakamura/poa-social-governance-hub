@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react'
-import { ChevronRight, ChevronDown, Search, X, ExternalLink, DollarSign, Calendar, BarChart3, Activity } from 'lucide-react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { ChevronRight, ChevronDown, Search, X, ExternalLink, DollarSign, Calendar, BarChart3, Activity, RefreshCw } from 'lucide-react'
 import { usePEPEntries, usePEPVersoes, usePEPDesembolhos, usePEPCronogramaFisico } from '@/lib/queries/pep'
 import { usePMROutputs, usePMROutcomes } from '@/lib/queries/pmr'
 import { type PepEntry } from '@/lib/supabase'
