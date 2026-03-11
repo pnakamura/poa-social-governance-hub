@@ -230,7 +230,7 @@ export const usePepRiscos = (entryId: string | undefined) =>
 export const useAddPepRisco = () => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (payload: { pep_entry_id: string; descricao: string; probabilidade: string; impacto: string; mitigacao?: string; risco_global_id?: string }) => {
+    mutationFn: async (payload: { pep_entry_id: string; titulo_risco: string; probabilidade: string; impacto: string; mitigacao?: string; risco_global_id?: string }) => {
       const { error } = await supabase.from('pep_riscos').insert(payload as any)
       if (error) throw error
     },

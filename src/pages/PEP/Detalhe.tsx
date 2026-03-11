@@ -637,7 +637,7 @@ export default function PEPDetalhePage() {
                           <ShieldAlert className={cn('w-4 h-4', risco.status === 'Ativo' ? 'text-red-500' : 'text-muted-foreground')} />
                         </button>
                         <div className="flex-1 min-w-0">
-                          <p className={cn('text-sm', risco.status !== 'Ativo' && 'line-through text-muted-foreground')}>{risco.descricao}</p>
+                          <p className={cn('text-sm', risco.status !== 'Ativo' && 'line-through text-muted-foreground')}>{risco.titulo_risco}</p>
                           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                             <Badge className={cn('text-[9px] h-4 px-1.5 rounded-full', nivelColors[risco.probabilidade])}>P: {risco.probabilidade}</Badge>
                             <Badge className={cn('text-[9px] h-4 px-1.5 rounded-full', nivelColors[risco.impacto])}>I: {risco.impacto}</Badge>

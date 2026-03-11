@@ -1,0 +1,1 @@
+ALTER TABLE public.pep_riscos RENAME COLUMN descricao TO titulo_risco;
