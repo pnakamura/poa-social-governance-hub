@@ -140,6 +140,12 @@ Deno.serve(async (req) => {
       const ref = txt(row[0]);
       if (!ref || !VALID_REFS.has(ref)) continue;
 
+      // Debug: log raw values for C rows
+      if (ref === "C") {
+        console.log(`DEBUG C row (line ${i+1}): cols[10..19] = [${row.slice(10, 20).map((v, j) => `${j+10}:"${v}"`).join(", ")}]`);
+        console.log(`DEBUG C row normalizeBrNum tests: col13="${row[13]}" → "${normalizeBrNum(row[13])}" → ${num(row[13])}`);
+      }
+
       const ncols = row.length;
 
       pepRows.push({
