@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit2, Save, X, Plus, Trash2, Download, Upload, Image, FileText, Clock, AlertTriangle, ChevronRight } from 'lucide-react'
+import { ArrowLeft, Edit2, Save, X, Plus, Trash2, Download, Upload, Image as ImageIcon, FileText, Clock, AlertTriangle, ChevronRight, Camera } from 'lucide-react'
+import logoPoaSocial from '@/assets/logo-poa-social.png'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -191,6 +192,60 @@ export default function PEPDetalhePage() {
   // Lightbox
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
 
+  // Hero image (stored in storage bucket under wbs/_hero)
+  const heroInputRef = useRef<HTMLInputElement>(null)
+  const [heroImage, setHeroImage] = useState<string | null>(null)
+  const [editingDescricao, setEditingDescricao] = useState(false)
+  const [descricaoEdit, setDescricaoEdit] = useState('')
+
+  // Load hero image on mount
+  const heroLoaded = useRef(false)
+  useMemo(() => {
+    if (!decodedWbs || heroLoaded.current) return
+    heroLoaded.current = true
+    supabase.storage.from('pep-evidencias').list(`${decodedWbs}/_hero`).then(({ data }) => {
+      if (data && data.length > 0) {
+        const { data: urlData } = supabase.storage.from('pep-evidencias').getPublicUrl(`${decodedWbs}/_hero/${data[0].name}`)
+        setHeroImage(urlData.publicUrl)
+      }
+    })
+  }, [decodedWbs])
+
+  const handleHeroUpload = useCallback(async (files: FileList | null) => {
+    if (!files || files.length === 0 || !decodedWbs) return
+    const file = files[0]
+    // Remove old hero images
+    const { data: oldFiles } = await supabase.storage.from('pep-evidencias').list(`${decodedWbs}/_hero`)
+    if (oldFiles && oldFiles.length > 0) {
+      await supabase.storage.from('pep-evidencias').remove(oldFiles.map(f => `${decodedWbs}/_hero/${f.name}`))
+    }
+    const path = `${decodedWbs}/_hero/${Date.now()}_${file.name}`
+    const { error } = await supabase.storage.from('pep-evidencias').upload(path, file)
+    if (error) { toast.error('Erro ao enviar imagem'); return }
+    const { data: urlData } = supabase.storage.from('pep-evidencias').getPublicUrl(path)
+    setHeroImage(urlData.publicUrl)
+    toast.success('Imagem atualizada')
+  }, [decodedWbs])
+
+  const handleRemoveHero = useCallback(async () => {
+    if (!decodedWbs) return
+    const { data: oldFiles } = await supabase.storage.from('pep-evidencias').list(`${decodedWbs}/_hero`)
+    if (oldFiles && oldFiles.length > 0) {
+      await supabase.storage.from('pep-evidencias').remove(oldFiles.map(f => `${decodedWbs}/_hero/${f.name}`))
+    }
+    setHeroImage(null)
+    toast.success('Imagem removida')
+  }, [decodedWbs])
+
+  const handleSaveDescricao = useCallback(async () => {
+    if (!entry) return
+    const { error } = await supabase.from('pep_entries').update({ descricao: descricaoEdit }).eq('id', entry.id)
+    if (error) { toast.error('Erro ao salvar descrição'); return }
+    await logChange(entry.id, 'descricao', entry.descricao ?? null, descricaoEdit)
+    setEditingDescricao(false)
+    toast.success('Descrição atualizada')
+  }, [entry, descricaoEdit])
+
   if (loadingEntries) {
     return <div className="flex items-center justify-center h-64 text-muted-foreground">Carregando...</div>
   }
@@ -247,6 +302,78 @@ export default function PEPDetalhePage() {
           <span className="text-sm font-semibold w-10 text-right">{progresso}%</span>
         </div>
       </div>
+
+      {/* ─── Hero Image + Descrição ─────────────────────────────── */}
+      <Card className="overflow-hidden">
+        <div className="relative group">
+          {heroImage ? (
+            <img
+              src={heroImage}
+              alt={entry.descricao ?? 'Imagem do item PEP'}
+              className="w-full h-48 sm:h-56 object-cover"
+            />
+          ) : (
+            <div className="w-full h-48 sm:h-56 bg-muted/30 flex items-center justify-center">
+              <img src={logoPoaSocial} alt="POA+ Social" className="h-28 opacity-60" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="shadow-lg"
+              onClick={() => heroInputRef.current?.click()}
+            >
+              <Camera className="w-4 h-4 mr-1" />
+              {heroImage ? 'Trocar imagem' : 'Adicionar imagem'}
+            </Button>
+            {heroImage && (
+              <Button
+                variant="destructive"
+                size="sm"
+                className="shadow-lg ml-2"
+                onClick={handleRemoveHero}
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                Remover
+              </Button>
+            )}
+          </div>
+          <input
+            ref={heroInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => handleHeroUpload(e.target.files)}
+          />
+        </div>
+        <CardContent className="pt-4 pb-4">
+          {editingDescricao ? (
+            <div className="flex gap-2">
+              <Textarea
+                value={descricaoEdit}
+                onChange={(e) => setDescricaoEdit(e.target.value)}
+                placeholder="Descreva o que se trata este item..."
+                className="min-h-[80px] flex-1"
+              />
+              <div className="flex flex-col gap-1">
+                <Button size="sm" onClick={handleSaveDescricao}><Save className="w-4 h-4" /></Button>
+                <Button size="sm" variant="ghost" onClick={() => setEditingDescricao(false)}><X className="w-4 h-4" /></Button>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="cursor-pointer hover:bg-muted/50 rounded-md p-2 -m-2 transition-colors group/desc"
+              onClick={() => { setDescricaoEdit(entry.descricao ?? ''); setEditingDescricao(true) }}
+            >
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {entry.descricao || <span className="italic">Clique para adicionar uma descrição...</span>}
+              </p>
+              <span className="text-[10px] text-muted-foreground/50 opacity-0 group-hover/desc:opacity-100 transition-opacity">Clique para editar</span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* ─── Col 1-2: Main content ──────────────────────────────── */}
@@ -421,7 +548,7 @@ export default function PEPDetalhePage() {
               {/* Gallery: images */}
               {evidencias.filter(f => isImageFile(f.name)).length > 0 && (
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1"><Image className="w-3 h-3" /> Imagens</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1"><ImageIcon className="w-3 h-3" /> Imagens</p>
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                     {evidencias.filter(f => isImageFile(f.name)).map(f => {
                       const url = getEvidenciaUrl(decodedWbs, f.name)
