@@ -67,6 +67,13 @@ function normalizeBrNum(v: string): string {
   } else if (commas > 1 && dots === 0) {
     // US thousands only: 27,000,000 → remove all commas
     s = s.replace(/,/g, "");
+  } else if (dots === 1 && commas === 0) {
+    // Ambiguous: "211.630" (BR thousands) vs "3.50" (US decimal)
+    const afterDot = s.substring(lastDot + 1);
+    if (afterDot.length === 3) {
+      s = s.replace(".", ""); // BR thousands: 211.630 → 211630
+    }
+    // else: US decimal: 3.50 → keep as is
   } else if (lastComma > lastDot) {
     // Brazilian decimal: 27.000,50 → remove dots, replace comma with dot
     s = s.replace(/\./g, "").replace(",", ".");
