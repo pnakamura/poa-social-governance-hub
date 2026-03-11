@@ -394,6 +394,26 @@ function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry }: 
     return true
   }
 
+  const f = moeda === 'BRL' ? fBRL : fUSD
+
+  const totals = useMemo(() => {
+    const cRows = entries.filter(e => e.ref === 'C' && (filtroComp === 'todos' || String(e.comp) === filtroComp))
+    if (moeda === 'BRL') {
+      return {
+        bid:   cRows.reduce((s, r) => s + (r.k_reais_bid ?? 0), 0),
+        local: cRows.reduce((s, r) => s + (r.l_reais_local ?? 0), 0),
+        total: cRows.reduce((s, r) => s + (r.m_reais_total ?? 0), 0),
+        base:  null as number | null,
+      }
+    }
+    return {
+      bid:   cRows.reduce((s, r) => s + (r.n_atual ?? 0), 0),
+      local: cRows.reduce((s, r) => s + (r.o_atual ?? 0), 0),
+      total: cRows.reduce((s, r) => s + (r.p_atual ?? 0), 0),
+      base:  cRows.reduce((s, r) => s + (r.t_base ?? 0), 0),
+    }
+  }, [entries, moeda, filtroComp])
+
   const visible = entries.filter(isVisible)
 
   return (
