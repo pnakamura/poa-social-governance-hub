@@ -23,6 +23,7 @@ import Temas from '@/pages/Temas'
 import Monitoramento from '@/pages/Monitoramento'
 import Qualidade from '@/pages/Qualidade'
 import PEPAnalisePage from '@/pages/PEP/Analise'
+import PEPDetalhePage from '@/pages/PEP/Detalhe'
 
 const queryClient = new QueryClient({
   defaultOptions: {
