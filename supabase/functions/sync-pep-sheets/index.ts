@@ -67,6 +67,13 @@ function normalizeBrNum(v: string): string {
   } else if (commas > 1 && dots === 0) {
     // US thousands only: 27,000,000 → remove all commas
     s = s.replace(/,/g, "");
+  } else if (dots === 1 && commas === 0) {
+    // Ambiguous: "211.630" (BR thousands) vs "3.50" (US decimal)
+    const afterDot = s.substring(lastDot + 1);
+    if (afterDot.length === 3) {
+      s = s.replace(".", ""); // BR thousands: 211.630 → 211630
+    }
+    // else: US decimal: 3.50 → keep as is
   } else if (lastComma > lastDot) {
     // Brazilian decimal: 27.000,50 → remove dots, replace comma with dot
     s = s.replace(/\./g, "").replace(",", ".");
@@ -186,6 +193,18 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Found ${pepRows.length} valid PEP entries`);
+
+    // Debug: log columns 20-30 of first few PT rows to identify secretaria column
+    const ptSamples = allRows.slice(3, Math.min(allRows.length, 246))
+      .filter(r => r[0]?.trim() === 'PT')
+      .slice(0, 3);
+    ptSamples.forEach((row, idx) => {
+      const cols: Record<string, string> = {};
+      for (let c = 20; c <= Math.min(35, row.length - 1); c++) {
+        cols[`col${c}`] = row[c]?.substring(0, 30) ?? '';
+      }
+      console.log(`PT sample ${idx} (row desc: ${row[9]?.substring(0, 40)}):`, JSON.stringify(cols));
+    });
 
     if (pepRows.length === 0) {
       return new Response(
