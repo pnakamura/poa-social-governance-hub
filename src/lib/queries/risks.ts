@@ -14,6 +14,65 @@ export const useRiscos = () =>
     },
   })
 
+export const useRiscosByTipo = (tipo: Risco['tipo']) =>
+  useQuery<Risco[]>({
+    queryKey: ['riscos', tipo],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('riscos')
+        .select('*')
+        .eq('tipo', tipo)
+        .order('nivel', { ascending: false })
+      if (error) throw error
+      return data ?? []
+    },
+  })
+
+export type PepRiscoWithWbs = {
+  id: string
+  titulo_risco: string
+  probabilidade: string
+  impacto: string
+  status: string
+  mitigacao: string | null
+  pep_entry_id: string
+  codigo_wbs: string | null
+  descricao_pep: string | null
+}
+
+const PROB_MAP: Record<string, number> = {
+  'Muito Baixa': 1, 'Baixa': 2, 'Média': 3, 'Alta': 4, 'Muito Alta': 5,
+}
+const IMP_MAP: Record<string, number> = {
+  'Muito Baixo': 1, 'Baixo': 2, 'Médio': 3, 'Alto': 4, 'Muito Alto': 5,
+}
+
+export const probToNum = (p: string) => PROB_MAP[p] ?? 3
+export const impToNum = (i: string) => IMP_MAP[i] ?? 3
+
+export const usePepRiscosAll = () =>
+  useQuery<PepRiscoWithWbs[]>({
+    queryKey: ['pep_riscos_all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pep_riscos')
+        .select('id, titulo_risco, probabilidade, impacto, status, mitigacao, pep_entry_id, pep_entries(codigo_wbs, descricao)')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return (data ?? []).map((r: any) => ({
+        id: r.id,
+        titulo_risco: r.titulo_risco,
+        probabilidade: r.probabilidade,
+        impacto: r.impacto,
+        status: r.status,
+        mitigacao: r.mitigacao,
+        pep_entry_id: r.pep_entry_id,
+        codigo_wbs: r.pep_entries?.codigo_wbs ?? null,
+        descricao_pep: r.pep_entries?.descricao ?? null,
+      }))
+    },
+  })
+
 export const useRiscoKPIs = () =>
   useQuery({
     queryKey: ['risco_kpis'],

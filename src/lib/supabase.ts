@@ -97,6 +97,7 @@ export type Risco = {
   mitigacao: string | null
   responsavel: string | null
   status: 'Ativo' | 'Mitigado' | 'Monitorando' | 'Fechado'
+  tipo: 'Estratégico' | 'Tático' | 'Operacional'
   criado_em: string
   atualizado_em: string
 }
