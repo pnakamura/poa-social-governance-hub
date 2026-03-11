@@ -158,6 +158,8 @@ export default function PEPDetalhePage() {
   const [riscoForm, setRiscoForm] = useState({ titulo_risco: '', probabilidade: 'Média', impacto: 'Médio', mitigacao: '' })
   const [vinculandoRisco, setVinculandoRisco] = useState(false)
   const [riscoGlobalSearch, setRiscoGlobalSearch] = useState('')
+  const [editingRiscoId, setEditingRiscoId] = useState<string | null>(null)
+  const [editRiscoForm, setEditRiscoForm] = useState({ titulo_risco: '', probabilidade: '', impacto: '', mitigacao: '', status: '' })
 
   const handleAddRisco = useCallback(async () => {
     if (!entry || !riscoForm.titulo_risco.trim()) return
