@@ -23,6 +23,19 @@ export interface PepImpedimento {
   created_at: string
 }
 
+export interface PepRisco {
+  id: string
+  pep_entry_id: string
+  risco_global_id: string | null
+  descricao: string
+  probabilidade: string
+  impacto: string
+  mitigacao: string | null
+  status: string
+  created_at: string
+  updated_at: string
+}
+
 export interface PepHistorico {
   id: string
   pep_entry_id: string
