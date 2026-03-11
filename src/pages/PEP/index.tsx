@@ -843,6 +843,18 @@ export default function PEPPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Sync button */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            onClick={handleSync}
+            disabled={syncing}
+          >
+            <RefreshCw className={cn('w-3.5 h-3.5', syncing && 'animate-spin')} />
+            {syncing ? 'Sincronizando...' : 'Sincronizar Planilha'}
+          </Button>
+
           {/* Toggle USD/BRL */}
           <div className="flex rounded-md border border-border overflow-hidden text-xs">
             <button
