@@ -203,6 +203,7 @@ export default function PEPDetalhePage() {
   })
 
 
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const handleFileUpload = useCallback(async (files: FileList | null) => {
     if (!files || !decodedWbs) return
     for (const file of Array.from(files)) {
