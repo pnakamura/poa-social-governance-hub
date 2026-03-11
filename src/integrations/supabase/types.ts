@@ -312,6 +312,7 @@ export type Database = {
           k_reais_bid: number | null
           l_reais_local: number | null
           linha_excel: number | null
+          lote: string | null
           m_reais_total: number | null
           metodo_aquisicao: string | null
           n_atual: number | null
@@ -353,6 +354,7 @@ export type Database = {
           k_reais_bid?: number | null
           l_reais_local?: number | null
           linha_excel?: number | null
+          lote?: string | null
           m_reais_total?: number | null
           metodo_aquisicao?: string | null
           n_atual?: number | null
@@ -394,6 +396,7 @@ export type Database = {
           k_reais_bid?: number | null
           l_reais_local?: number | null
           linha_excel?: number | null
+          lote?: string | null
           m_reais_total?: number | null
           metodo_aquisicao?: string | null
           n_atual?: number | null
