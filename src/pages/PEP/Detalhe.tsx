@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Edit2, Save, X, Plus, Trash2, Download, Upload, Image as ImageIcon, FileText, Clock, AlertTriangle, ChevronRight, Camera, ShieldAlert, Link2 } from 'lucide-react'
+import { ArrowLeft, Edit2, Save, X, Plus, Trash2, Download, Upload, Image as ImageIcon, FileText, Clock, AlertTriangle, ChevronRight, Camera, ShieldAlert, Link2, Pencil } from 'lucide-react'
 import logoPoaSocial from '@/assets/logo-poa-social.png'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -158,6 +158,8 @@ export default function PEPDetalhePage() {
   const [riscoForm, setRiscoForm] = useState({ titulo_risco: '', probabilidade: 'Média', impacto: 'Médio', mitigacao: '' })
   const [vinculandoRisco, setVinculandoRisco] = useState(false)
   const [riscoGlobalSearch, setRiscoGlobalSearch] = useState('')
+  const [editingRiscoId, setEditingRiscoId] = useState<string | null>(null)
+  const [editRiscoForm, setEditRiscoForm] = useState({ titulo_risco: '', probabilidade: '', impacto: '', mitigacao: '', status: '' })
 
   const handleAddRisco = useCallback(async () => {
     if (!entry || !riscoForm.titulo_risco.trim()) return
@@ -189,6 +191,32 @@ export default function PEPDetalhePage() {
     const newStatus = risco.status === 'Ativo' ? 'Mitigado' : 'Ativo'
     await updatePepRisco.mutateAsync({ id: risco.id, pep_entry_id: entry.id, status: newStatus })
   }, [entry, updatePepRisco])
+
+  const handleStartEditRisco = useCallback((risco: PepRisco) => {
+    setEditingRiscoId(risco.id)
+    setEditRiscoForm({
+      titulo_risco: risco.titulo_risco,
+      probabilidade: risco.probabilidade,
+      impacto: risco.impacto,
+      mitigacao: risco.mitigacao ?? '',
+      status: risco.status,
+    })
+  }, [])
+
+  const handleSaveEditRisco = useCallback(async () => {
+    if (!entry || !editingRiscoId || !editRiscoForm.titulo_risco.trim()) return
+    await updatePepRisco.mutateAsync({
+      id: editingRiscoId,
+      pep_entry_id: entry.id,
+      titulo_risco: editRiscoForm.titulo_risco,
+      probabilidade: editRiscoForm.probabilidade,
+      impacto: editRiscoForm.impacto,
+      mitigacao: editRiscoForm.mitigacao || null,
+      status: editRiscoForm.status,
+    } as any)
+    setEditingRiscoId(null)
+    toast.success('Risco atualizado')
+  }, [entry, editingRiscoId, editRiscoForm, updatePepRisco])
 
   // Query riscos globais para vincular
   const { data: riscosGlobais = [] } = useQuery({
@@ -630,6 +658,64 @@ export default function PEPDetalhePage() {
                     'Alto': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
                     'Muito Alto': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
                   }
+
+                  if (editingRiscoId === risco.id) {
+                    return (
+                      <div key={risco.id} className="p-3 rounded-lg border-2 border-primary/40 bg-muted/30 space-y-3">
+                        <Input
+                          value={editRiscoForm.titulo_risco}
+                          onChange={e => setEditRiscoForm(f => ({ ...f, titulo_risco: e.target.value }))}
+                          className="rounded-lg text-sm"
+                          placeholder="Título do risco"
+                        />
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <label className="text-[10px] text-muted-foreground">Probabilidade</label>
+                            <Select value={editRiscoForm.probabilidade} onValueChange={v => setEditRiscoForm(f => ({ ...f, probabilidade: v }))}>
+                              <SelectTrigger className="mt-0.5 h-8 text-xs rounded-lg"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {['Muito Baixa', 'Baixa', 'Média', 'Alta', 'Muito Alta'].map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-muted-foreground">Impacto</label>
+                            <Select value={editRiscoForm.impacto} onValueChange={v => setEditRiscoForm(f => ({ ...f, impacto: v }))}>
+                              <SelectTrigger className="mt-0.5 h-8 text-xs rounded-lg"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {['Muito Baixo', 'Baixo', 'Médio', 'Alto', 'Muito Alto'].map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-muted-foreground">Status</label>
+                            <Select value={editRiscoForm.status} onValueChange={v => setEditRiscoForm(f => ({ ...f, status: v }))}>
+                              <SelectTrigger className="mt-0.5 h-8 text-xs rounded-lg"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {['Ativo', 'Mitigado', 'Aceito', 'Eliminado'].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <Textarea
+                          placeholder="Ação de mitigação (opcional)..."
+                          value={editRiscoForm.mitigacao}
+                          onChange={e => setEditRiscoForm(f => ({ ...f, mitigacao: e.target.value }))}
+                          className="rounded-lg min-h-[60px]"
+                          rows={2}
+                        />
+                        <div className="flex gap-2 justify-end">
+                          <Button variant="ghost" size="sm" className="rounded-lg text-xs" onClick={() => setEditingRiscoId(null)}>
+                            <X className="w-3 h-3 mr-1" />Cancelar
+                          </Button>
+                          <Button size="sm" className="rounded-lg text-xs" onClick={handleSaveEditRisco} disabled={!editRiscoForm.titulo_risco.trim()}>
+                            <Save className="w-3 h-3 mr-1" />Salvar
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  }
+
                   return (
                     <div key={risco.id} className={cn('group p-3 rounded-lg border transition-all duration-200 hover:shadow-sm', risco.status === 'Ativo' ? 'border-border/60 bg-background' : 'border-border/30 bg-muted/20 opacity-60')}>
                       <div className="flex items-start gap-2">
@@ -646,12 +732,20 @@ export default function PEPDetalhePage() {
                           </div>
                           {risco.mitigacao && <p className="text-[11px] text-muted-foreground mt-1.5 italic">Mitigação: {risco.mitigacao}</p>}
                         </div>
-                        <Button
-                          variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 rounded-lg flex-shrink-0"
-                          onClick={() => entry && deletePepRisco.mutate({ id: risco.id, pep_entry_id: entry.id })}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+                        <div className="flex gap-0.5 flex-shrink-0">
+                          <Button
+                            variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 rounded-lg"
+                            onClick={() => handleStartEditRisco(risco)}
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 rounded-lg"
+                            onClick={() => entry && deletePepRisco.mutate({ id: risco.id, pep_entry_id: entry.id })}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   )
