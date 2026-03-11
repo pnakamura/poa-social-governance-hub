@@ -174,7 +174,7 @@ export default function PEPDetalhePage() {
     await addPepRisco.mutateAsync({
       pep_entry_id: entry.id,
       risco_global_id: risco.id,
-      descricao: risco.descricao,
+      titulo_risco: risco.descricao,
       probabilidade: probMap[risco.probabilidade] ?? 'Média',
       impacto: impMap[risco.impacto] ?? 'Médio',
       mitigacao: risco.mitigacao ?? undefined,
