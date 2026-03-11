@@ -87,6 +87,10 @@ export default function PEPDetalhePage() {
   const { data: evidencias = [] } = usePepEvidencias(decodedWbs)
   const uploadEvidencia = useUploadEvidencia()
   const deleteEvidencia = useDeleteEvidencia()
+  const { data: pepRiscos = [] } = usePepRiscos(entry?.id)
+  const addPepRisco = useAddPepRisco()
+  const updatePepRisco = useUpdatePepRisco()
+  const deletePepRisco = useDeletePepRisco()
 
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({
