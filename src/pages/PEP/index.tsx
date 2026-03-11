@@ -733,13 +733,13 @@ function CronogramaTab({ entries, onSelectWBS }: { entries: PepEntry[]; onSelect
 }
 
 // ─── Tab 3: Desembolsos (revised — uses filtered entries) ─────────────────────
-function DesembolsosTab({ entries, moeda, filtroSecretaria }: { entries: PepEntry[]; moeda: 'USD' | 'BRL'; filtroSecretaria: string }) {
-  // When no secretaria filter, use C rows directly (they have correct totals from the spreadsheet).
+function DesembolsosTab({ entries, moeda, isFiltered }: { entries: PepEntry[]; moeda: 'USD' | 'BRL'; isFiltered: boolean }) {
+  // When no filter, use C rows directly (they have correct totals from the spreadsheet).
   // When filtered, aggregate from PT rows of the filtered set.
   const compRows = useMemo(() => {
     const comps = [...new Set(entries.filter(e => e.ref === 'C').map(e => e.comp))].sort((a, b) => (a ?? 0) - (b ?? 0))
 
-    if (filtroSecretaria === 'todos') {
+    if (!isFiltered) {
       // Use C row data directly — accurate totals
       return comps.map(comp => {
         const cRow = entries.find(e => e.ref === 'C' && e.comp === comp)
