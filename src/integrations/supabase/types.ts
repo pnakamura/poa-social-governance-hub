@@ -536,7 +536,6 @@ export type Database = {
       pep_riscos: {
         Row: {
           created_at: string
-          descricao: string
           id: string
           impacto: string
           mitigacao: string | null
@@ -544,11 +543,11 @@ export type Database = {
           probabilidade: string
           risco_global_id: string | null
           status: string
+          titulo_risco: string
           updated_at: string
         }
         Insert: {
           created_at?: string
-          descricao: string
           id?: string
           impacto?: string
           mitigacao?: string | null
@@ -556,11 +555,11 @@ export type Database = {
           probabilidade?: string
           risco_global_id?: string | null
           status?: string
+          titulo_risco: string
           updated_at?: string
         }
         Update: {
           created_at?: string
-          descricao?: string
           id?: string
           impacto?: string
           mitigacao?: string | null
@@ -568,6 +567,7 @@ export type Database = {
           probabilidade?: string
           risco_global_id?: string | null
           status?: string
+          titulo_risco?: string
           updated_at?: string
         }
         Relationships: [

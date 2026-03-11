@@ -155,14 +155,14 @@ export default function PEPDetalhePage() {
 
   // ─── Riscos do Item ──────────────────────────────────────────────
   const [showRiscoForm, setShowRiscoForm] = useState(false)
-  const [riscoForm, setRiscoForm] = useState({ descricao: '', probabilidade: 'Média', impacto: 'Médio', mitigacao: '' })
+  const [riscoForm, setRiscoForm] = useState({ titulo_risco: '', probabilidade: 'Média', impacto: 'Médio', mitigacao: '' })
   const [vinculandoRisco, setVinculandoRisco] = useState(false)
   const [riscoGlobalSearch, setRiscoGlobalSearch] = useState('')
 
   const handleAddRisco = useCallback(async () => {
-    if (!entry || !riscoForm.descricao.trim()) return
+    if (!entry || !riscoForm.titulo_risco.trim()) return
     await addPepRisco.mutateAsync({ pep_entry_id: entry.id, ...riscoForm, mitigacao: riscoForm.mitigacao || undefined })
-    setRiscoForm({ descricao: '', probabilidade: 'Média', impacto: 'Médio', mitigacao: '' })
+    setRiscoForm({ titulo_risco: '', probabilidade: 'Média', impacto: 'Médio', mitigacao: '' })
     setShowRiscoForm(false)
     toast.success('Risco adicionado')
   }, [entry, riscoForm, addPepRisco])
@@ -174,7 +174,7 @@ export default function PEPDetalhePage() {
     await addPepRisco.mutateAsync({
       pep_entry_id: entry.id,
       risco_global_id: risco.id,
-      descricao: risco.descricao,
+      titulo_risco: risco.descricao,
       probabilidade: probMap[risco.probabilidade] ?? 'Média',
       impacto: impMap[risco.impacto] ?? 'Médio',
       mitigacao: risco.mitigacao ?? undefined,
@@ -573,9 +573,9 @@ export default function PEPDetalhePage() {
               {showRiscoForm && (
                 <div className="space-y-3 p-3 rounded-lg bg-muted/30 border border-border/50">
                   <Input
-                    placeholder="Descrição do risco..."
-                    value={riscoForm.descricao}
-                    onChange={e => setRiscoForm(f => ({ ...f, descricao: e.target.value }))}
+                    placeholder="Título do risco..."
+                    value={riscoForm.titulo_risco}
+                    onChange={e => setRiscoForm(f => ({ ...f, titulo_risco: e.target.value }))}
                     className="rounded-lg"
                   />
                   <div className="grid grid-cols-2 gap-2">
@@ -607,7 +607,7 @@ export default function PEPDetalhePage() {
                   />
                   <div className="flex gap-2 justify-end">
                     <Button variant="ghost" size="sm" className="rounded-lg text-xs" onClick={() => setShowRiscoForm(false)}>Cancelar</Button>
-                    <Button size="sm" className="rounded-lg text-xs" onClick={handleAddRisco} disabled={!riscoForm.descricao.trim()}>Adicionar</Button>
+                    <Button size="sm" className="rounded-lg text-xs" onClick={handleAddRisco} disabled={!riscoForm.titulo_risco.trim()}>Adicionar</Button>
                   </div>
                 </div>
               )}
@@ -637,7 +637,7 @@ export default function PEPDetalhePage() {
                           <ShieldAlert className={cn('w-4 h-4', risco.status === 'Ativo' ? 'text-red-500' : 'text-muted-foreground')} />
                         </button>
                         <div className="flex-1 min-w-0">
-                          <p className={cn('text-sm', risco.status !== 'Ativo' && 'line-through text-muted-foreground')}>{risco.descricao}</p>
+                          <p className={cn('text-sm', risco.status !== 'Ativo' && 'line-through text-muted-foreground')}>{risco.titulo_risco}</p>
                           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                             <Badge className={cn('text-[9px] h-4 px-1.5 rounded-full', nivelColors[risco.probabilidade])}>P: {risco.probabilidade}</Badge>
                             <Badge className={cn('text-[9px] h-4 px-1.5 rounded-full', nivelColors[risco.impacto])}>I: {risco.impacto}</Badge>
