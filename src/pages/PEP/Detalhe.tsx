@@ -607,7 +607,7 @@ export default function PEPDetalhePage() {
                   />
                   <div className="flex gap-2 justify-end">
                     <Button variant="ghost" size="sm" className="rounded-lg text-xs" onClick={() => setShowRiscoForm(false)}>Cancelar</Button>
-                    <Button size="sm" className="rounded-lg text-xs" onClick={handleAddRisco} disabled={!riscoForm.descricao.trim()}>Adicionar</Button>
+                    <Button size="sm" className="rounded-lg text-xs" onClick={handleAddRisco} disabled={!riscoForm.titulo_risco.trim()}>Adicionar</Button>
                   </div>
                 </div>
               )}
