@@ -152,7 +152,56 @@ export default function PEPDetalhePage() {
     setNewImpedimento('')
   }, [entry, newImpedimento, addImpedimento])
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  // ─── Riscos do Item ──────────────────────────────────────────────
+  const [showRiscoForm, setShowRiscoForm] = useState(false)
+  const [riscoForm, setRiscoForm] = useState({ descricao: '', probabilidade: 'Média', impacto: 'Médio', mitigacao: '' })
+  const [vinculandoRisco, setVinculandoRisco] = useState(false)
+  const [riscoGlobalSearch, setRiscoGlobalSearch] = useState('')
+
+  const handleAddRisco = useCallback(async () => {
+    if (!entry || !riscoForm.descricao.trim()) return
+    await addPepRisco.mutateAsync({ pep_entry_id: entry.id, ...riscoForm, mitigacao: riscoForm.mitigacao || undefined })
+    setRiscoForm({ descricao: '', probabilidade: 'Média', impacto: 'Médio', mitigacao: '' })
+    setShowRiscoForm(false)
+    toast.success('Risco adicionado')
+  }, [entry, riscoForm, addPepRisco])
+
+  const handleVincularRiscoGlobal = useCallback(async (risco: { id: string; descricao: string; probabilidade: number; impacto: number; mitigacao: string | null }) => {
+    if (!entry) return
+    const probMap: Record<number, string> = { 1: 'Muito Baixa', 2: 'Baixa', 3: 'Média', 4: 'Alta', 5: 'Muito Alta' }
+    const impMap: Record<number, string> = { 1: 'Muito Baixo', 2: 'Baixo', 3: 'Médio', 4: 'Alto', 5: 'Muito Alto' }
+    await addPepRisco.mutateAsync({
+      pep_entry_id: entry.id,
+      risco_global_id: risco.id,
+      descricao: risco.descricao,
+      probabilidade: probMap[risco.probabilidade] ?? 'Média',
+      impacto: impMap[risco.impacto] ?? 'Médio',
+      mitigacao: risco.mitigacao ?? undefined,
+    })
+    setVinculandoRisco(false)
+    setRiscoGlobalSearch('')
+    toast.success('Risco global vinculado')
+  }, [entry, addPepRisco])
+
+  const handleToggleRiscoStatus = useCallback(async (risco: PepRisco) => {
+    if (!entry) return
+    const newStatus = risco.status === 'Ativo' ? 'Mitigado' : 'Ativo'
+    await updatePepRisco.mutateAsync({ id: risco.id, pep_entry_id: entry.id, status: newStatus })
+  }, [entry, updatePepRisco])
+
+  // Query riscos globais para vincular
+  const { data: riscosGlobais = [] } = useQuery({
+    queryKey: ['riscos_globais_search', riscoGlobalSearch],
+    queryFn: async () => {
+      if (!riscoGlobalSearch || riscoGlobalSearch.length < 2) return []
+      const { data, error } = await supabase.from('riscos').select('id, descricao, probabilidade, impacto, mitigacao').ilike('descricao', `%${riscoGlobalSearch}%`).limit(10)
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: riscoGlobalSearch.length >= 2,
+  })
+
+
   const handleFileUpload = useCallback(async (files: FileList | null) => {
     if (!files || !decodedWbs) return
     for (const file of Array.from(files)) {
