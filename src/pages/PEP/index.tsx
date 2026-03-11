@@ -568,9 +568,13 @@ function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry }: 
                             <span className="w-4 flex-shrink-0" />
                           )}
                           {row.codigo_wbs && (
-                            <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1 rounded flex-shrink-0">
+                            <Link
+                              to={`/pep/${encodeURIComponent(row.codigo_wbs)}`}
+                              className="font-mono text-[10px] text-primary bg-primary/10 px-1 rounded flex-shrink-0 hover:underline"
+                              onClick={e => e.stopPropagation()}
+                            >
                               {row.codigo_wbs}
-                            </span>
+                            </Link>
                           )}
                           <span className={cn('truncate max-w-[260px]', isC && 'text-primary')} title={row.descricao ?? ''}>
                             {row.descricao}
@@ -681,8 +685,16 @@ function CronogramaTab({ entries, onSelectWBS }: { entries: PepEntry[]; onSelect
                       className="border-b border-border/30 hover:bg-muted/40 cursor-pointer transition-colors"
                       onClick={() => r.codigo_wbs && onSelectWBS(r.codigo_wbs)}
                     >
-                      <td className="px-3 py-2 font-mono text-[10px] text-muted-foreground whitespace-nowrap">
-                        {r.codigo_wbs ?? '—'}
+                      <td className="px-3 py-2 font-mono text-[10px] whitespace-nowrap">
+                        {r.codigo_wbs ? (
+                          <Link
+                            to={`/pep/${encodeURIComponent(r.codigo_wbs)}`}
+                            className="text-primary hover:underline"
+                            onClick={e => e.stopPropagation()}
+                          >
+                            {r.codigo_wbs}
+                          </Link>
+                        ) : '—'}
                       </td>
                       <td className="px-3 py-2 max-w-[200px] truncate" title={r.descricao ?? ''}>{r.descricao}</td>
                       <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">

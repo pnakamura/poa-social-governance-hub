@@ -413,6 +413,123 @@ export type Database = {
         }
         Relationships: []
       }
+      pep_gestao: {
+        Row: {
+          created_at: string | null
+          data_fim_previsto: string | null
+          data_inicio_real: string | null
+          id: string
+          nivel_risco: string | null
+          notas: string | null
+          pep_entry_id: string
+          progresso: number
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_fim_previsto?: string | null
+          data_inicio_real?: string | null
+          id?: string
+          nivel_risco?: string | null
+          notas?: string | null
+          pep_entry_id: string
+          progresso?: number
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_fim_previsto?: string | null
+          data_inicio_real?: string | null
+          id?: string
+          nivel_risco?: string | null
+          notas?: string | null
+          pep_entry_id?: string
+          progresso?: number
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pep_gestao_pep_entry_id_fkey"
+            columns: ["pep_entry_id"]
+            isOneToOne: true
+            referencedRelation: "pep_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pep_historico: {
+        Row: {
+          campo: string
+          created_at: string | null
+          id: string
+          pep_entry_id: string
+          usuario: string | null
+          valor_anterior: string | null
+          valor_novo: string | null
+        }
+        Insert: {
+          campo: string
+          created_at?: string | null
+          id?: string
+          pep_entry_id: string
+          usuario?: string | null
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Update: {
+          campo?: string
+          created_at?: string | null
+          id?: string
+          pep_entry_id?: string
+          usuario?: string | null
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pep_historico_pep_entry_id_fkey"
+            columns: ["pep_entry_id"]
+            isOneToOne: false
+            referencedRelation: "pep_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pep_impedimentos: {
+        Row: {
+          created_at: string | null
+          descricao: string
+          id: string
+          pep_entry_id: string
+          resolvido: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          descricao: string
+          id?: string
+          pep_entry_id: string
+          resolvido?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string
+          id?: string
+          pep_entry_id?: string
+          resolvido?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pep_impedimentos_pep_entry_id_fkey"
+            columns: ["pep_entry_id"]
+            isOneToOne: false
+            referencedRelation: "pep_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pmr_outcomes: {
         Row: {
           codigo: string | null
