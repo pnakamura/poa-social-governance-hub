@@ -106,7 +106,7 @@ export function DataSourcePanel({
             <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" asChild>
               <a href={url} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="w-3 h-3" />
-                Abrir no Google Drive
+                {url.includes('spreadsheets') ? 'Abrir no Google Sheets' : url.includes('drive.google') ? 'Abrir no Google Drive' : 'Abrir fonte'}
               </a>
             </Button>
 
