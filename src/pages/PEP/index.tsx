@@ -685,8 +685,16 @@ function CronogramaTab({ entries, onSelectWBS }: { entries: PepEntry[]; onSelect
                       className="border-b border-border/30 hover:bg-muted/40 cursor-pointer transition-colors"
                       onClick={() => r.codigo_wbs && onSelectWBS(r.codigo_wbs)}
                     >
-                      <td className="px-3 py-2 font-mono text-[10px] text-muted-foreground whitespace-nowrap">
-                        {r.codigo_wbs ?? '—'}
+                      <td className="px-3 py-2 font-mono text-[10px] whitespace-nowrap">
+                        {r.codigo_wbs ? (
+                          <Link
+                            to={`/pep/${encodeURIComponent(r.codigo_wbs)}`}
+                            className="text-primary hover:underline"
+                            onClick={e => e.stopPropagation()}
+                          >
+                            {r.codigo_wbs}
+                          </Link>
+                        ) : '—'}
                       </td>
                       <td className="px-3 py-2 max-w-[200px] truncate" title={r.descricao ?? ''}>{r.descricao}</td>
                       <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">

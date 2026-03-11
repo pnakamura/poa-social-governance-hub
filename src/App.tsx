@@ -57,6 +57,7 @@ export default function App() {
               <Route path="monitoramento" element={<Monitoramento />} />
               <Route path="qualidade-dados" element={<Qualidade />} />
               <Route path="pep/analise" element={<PEPAnalisePage />} />
+              <Route path="pep/:wbs" element={<PEPDetalhePage />} />
               <Route path="*" element={
                 <div className="flex flex-col items-center justify-center h-64 gap-2">
                   <p className="text-3xl font-bold text-muted-foreground">404</p>
