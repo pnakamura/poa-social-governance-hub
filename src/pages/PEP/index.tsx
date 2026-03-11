@@ -1132,7 +1132,7 @@ export default function PEPPage() {
 
       <DataSourcePanel
         source="PEP RS — PEP_PMR.xlsx"
-        url="https://drive.google.com/drive/folders/1NQKPrkIWBUBcR0tQUU3vwOKDc5_YkuYl"
+        url="https://docs.google.com/spreadsheets/d/1C6uIqjqwpgToNWm3YqliqKzb2gPb8cHC"
         tabela="pep_entries"
         versao={versao}
         defaultOpen={false}
