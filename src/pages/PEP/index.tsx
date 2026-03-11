@@ -774,7 +774,7 @@ function DesembolsosTab({ entries, moeda, isFiltered }: { entries: PepEntry[]; m
         desembolso_total: sumField('desembolso_total'),
       }
     }).filter(r => r.desembolso_total > 0 || r.desembolso_2025 > 0)
-  }, [entries, filtroSecretaria])
+  }, [entries, isFiltered])
 
   const chartData = useMemo(() => {
     return ANOS_DESEMBOLSO.map(ano => {
