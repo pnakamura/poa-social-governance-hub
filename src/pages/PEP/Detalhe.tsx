@@ -573,9 +573,9 @@ export default function PEPDetalhePage() {
               {showRiscoForm && (
                 <div className="space-y-3 p-3 rounded-lg bg-muted/30 border border-border/50">
                   <Input
-                    placeholder="Descrição do risco..."
-                    value={riscoForm.descricao}
-                    onChange={e => setRiscoForm(f => ({ ...f, descricao: e.target.value }))}
+                    placeholder="Título do risco..."
+                    value={riscoForm.titulo_risco}
+                    onChange={e => setRiscoForm(f => ({ ...f, titulo_risco: e.target.value }))}
                     className="rounded-lg"
                   />
                   <div className="grid grid-cols-2 gap-2">
