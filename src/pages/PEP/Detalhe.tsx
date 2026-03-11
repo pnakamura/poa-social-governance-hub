@@ -338,13 +338,13 @@ export default function PEPDetalhePage() {
 
           {/* Description — 3/4 width */}
           <div className="sm:w-3/4 p-5 flex flex-col justify-center">
-            <p className="text-xs font-medium text-muted-foreground mb-2">Descrição do Item</p>
+            <p className="text-xs font-medium text-muted-foreground mb-2">Resumo Executivo</p>
             {editingDescricao ? (
               <div className="flex gap-2">
                 <Textarea
                   value={descricaoEdit}
                   onChange={(e) => setDescricaoEdit(e.target.value)}
-                  placeholder="Descreva o que se trata este item..."
+                  placeholder="Descreva o resumo executivo deste item..."
                   className="min-h-[100px] flex-1"
                 />
                 <div className="flex flex-col gap-1">
@@ -355,10 +355,10 @@ export default function PEPDetalhePage() {
             ) : (
               <div
                 className="cursor-pointer hover:bg-muted/50 rounded-md p-2 -m-2 transition-colors group/desc"
-                onClick={() => { setDescricaoEdit(entry.descricao ?? ''); setEditingDescricao(true) }}
+                onClick={() => { setDescricaoEdit(entry.resumo_executivo ?? ''); setEditingDescricao(true) }}
               >
                 <p className="text-sm text-foreground leading-relaxed">
-                  {entry.descricao || <span className="italic text-muted-foreground">Clique para adicionar uma descrição...</span>}
+                  {entry.resumo_executivo || <span className="italic text-muted-foreground">Clique para adicionar um resumo executivo...</span>}
                 </p>
                 <span className="text-[10px] text-muted-foreground/50 opacity-0 group-hover/desc:opacity-100 transition-opacity mt-1 block">Clique para editar</span>
               </div>
