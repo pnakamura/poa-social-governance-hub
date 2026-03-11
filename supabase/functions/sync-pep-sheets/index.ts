@@ -56,13 +56,18 @@ function parseCSV(text: string): string[][] {
 function normalizeBrNum(v: string): string {
   let s = v.replace(/[^\d.,-]/g, "").trim();
   if (!s) return "";
+  const commas = (s.match(/,/g) || []).length;
   const lastComma = s.lastIndexOf(",");
   const lastDot = s.lastIndexOf(".");
-  if (lastComma > lastDot) {
-    s = s.replace(/\./g, "").replace(",", ".");
-  } else if (lastDot > lastComma) {
+
+  if (commas > 1 && lastDot === -1) {
+    // US thousands only: 27,000,000 → remove all commas
     s = s.replace(/,/g, "");
+  } else if (lastComma > lastDot) {
+    // Brazilian: 27.000,50 → remove dots, replace comma with dot
+    s = s.replace(/\./g, "").replace(",", ".");
   } else {
+    // US decimal or no separator: 27,000.50 or 27000
     s = s.replace(/,/g, "");
   }
   return s;
