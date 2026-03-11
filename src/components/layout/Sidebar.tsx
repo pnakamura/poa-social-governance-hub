@@ -5,7 +5,7 @@ import {
   AlertTriangle, ListChecks, MessageSquareWarning,
   FileText, Settings, ChevronLeft, ChevronRight, TrendingUp,
   CheckSquare, Calendar, AlertOctagon, ShoppingCart, Tag, Brain, Radar,
-  ShieldCheck,
+  ShieldCheck, LineChart,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SyncStatusBadge } from '@/components/SyncStatusBadge'
@@ -22,6 +22,7 @@ const NAV_GROUPS = [
     label: 'Fontes de Dados',
     items: [
       { to: '/pep', icon: FileSpreadsheet, label: 'PEP RS' },
+      { to: '/pep/analise', icon: LineChart, label: 'Análise PEP' },
       { to: '/pmr/outputs', icon: BarChart3, label: 'PMR — Outputs' },
       { to: '/pmr/outcomes', icon: TrendingUp, label: 'PMR — Outcomes' },
       { to: '/aquisicoes', icon: ShoppingCart, label: 'Aquisições' },

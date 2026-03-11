@@ -22,6 +22,7 @@ import Aquisicoes from '@/pages/Aquisicoes'
 import Temas from '@/pages/Temas'
 import Monitoramento from '@/pages/Monitoramento'
 import Qualidade from '@/pages/Qualidade'
+import PEPAnalisePage from '@/pages/PEP/Analise'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -54,6 +55,7 @@ export default function App() {
               <Route path="temas" element={<Temas />} />
               <Route path="monitoramento" element={<Monitoramento />} />
               <Route path="qualidade-dados" element={<Qualidade />} />
+              <Route path="pep/analise" element={<PEPAnalisePage />} />
               <Route path="*" element={
                 <div className="flex flex-col items-center justify-center h-64 gap-2">
                   <p className="text-3xl font-bold text-muted-foreground">404</p>

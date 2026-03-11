@@ -10,6 +10,7 @@ const BREADCRUMBS: Record<string, string[]> = {
   '/': ['Dashboard'],
   '/programa': ['Programa'],
   '/pep': ['Financeiro', 'PEP RS'],
+  '/pep/analise': ['Financeiro', 'PEP RS', 'Análise'],
   '/pep/auditoria': ['Financeiro', 'PEP RS', 'Auditoria M1'],
   '/pep/comparativo': ['Financeiro', 'PEP RS', 'Comparativo M2'],
   '/pmr/outputs': ['PMR', 'Outputs'],
