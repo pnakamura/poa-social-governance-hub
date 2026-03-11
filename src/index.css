@@ -65,6 +65,13 @@
     --sidebar-accent-foreground: 210 17% 88%;
     --sidebar-border: 217 25% 20%;
     --sidebar-ring: 211 60% 55%;
+
+    /* ── Modern UI tokens ────────────────────── */
+    --glass-bg: 0 0% 100% / 0.7;
+    --glass-border: 214 20% 90% / 0.5;
+    --gradient-primary-start: 213 73% 24%;
+    --gradient-primary-end: 211 60% 44%;
+    --shadow-glow: 211 60% 44%;
   }
 
   .dark {
@@ -87,6 +94,9 @@
     --border: 217 25% 20%;
     --input: 217 25% 20%;
     --ring: 211 60% 55%;
+
+    --glass-bg: 217 32% 11% / 0.7;
+    --glass-border: 217 25% 20% / 0.5;
   }
 }
 
@@ -117,13 +127,46 @@
   .gradient-bid-subtle {
     background: linear-gradient(135deg, hsl(213 73% 24% / 0.08), hsl(211 60% 44% / 0.05));
   }
+  .gradient-bid-text {
+    background: linear-gradient(135deg, hsl(213 73% 24%), hsl(211 60% 50%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Glass card ───────────────────────────── */
+  .glass-card {
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--glass-border));
+  }
+  .glass-topbar {
+    background: hsl(var(--background) / 0.85);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+  }
+
+  /* ── Hover lift ───────────────────────────── */
+  .hover-lift {
+    @apply transition-all duration-300;
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px -8px hsl(var(--shadow-glow) / 0.15);
+  }
 
   /* ── KPI card accent bar ──────────────────── */
-  .kpi-bar-financial  { @apply border-l-4 border-l-[hsl(var(--accent))]; }
-  .kpi-bar-physical   { @apply border-l-4 border-l-[hsl(var(--status-done))]; }
-  .kpi-bar-risk       { @apply border-l-4 border-l-[hsl(var(--risk-high))]; }
-  .kpi-bar-activities { @apply border-l-4 border-l-[hsl(var(--status-waiting))]; }
-  .kpi-bar-pending    { @apply border-l-4 border-l-[hsl(var(--risk-medium))]; }
+  .kpi-bar-financial  { border-top: 3px solid hsl(var(--accent)); }
+  .kpi-bar-physical   { border-top: 3px solid hsl(var(--status-done)); }
+  .kpi-bar-risk       { border-top: 3px solid hsl(var(--risk-high)); }
+  .kpi-bar-activities { border-top: 3px solid hsl(var(--status-waiting)); }
+  .kpi-bar-pending    { border-top: 3px solid hsl(var(--risk-medium)); }
+
+  /* ── Section divider gradient ─────────────── */
+  .section-divider-line {
+    background: linear-gradient(90deg, hsl(var(--primary) / 0.3), hsl(var(--border)), transparent);
+  }
 
   /* ── Risk matrix cell ─────────────────────── */
   .risk-cell {
@@ -144,7 +187,47 @@
   .badge-done     { @apply bg-[hsl(var(--status-done)/0.12)] text-[hsl(var(--status-done))]; }
 
   /* ── Scrollbar ────────────────────────────── */
-  .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
   .custom-scrollbar::-webkit-scrollbar-track { @apply bg-transparent; }
-  .custom-scrollbar::-webkit-scrollbar-thumb { @apply bg-border rounded-full; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { @apply bg-border/60 rounded-full hover:bg-border; }
+
+  /* ── Stagger children animation ───────────── */
+  .stagger-children > * {
+    animation: fade-slide-up 0.4s ease-out both;
+  }
+  .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+  .stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+  .stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+  .stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+  .stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+  .stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+
+  /* ── Shimmer loading ──────────────────────── */
+  .shimmer {
+    background: linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--muted-foreground) / 0.08) 50%, hsl(var(--muted)) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* ── Dot grid background ──────────────────── */
+  .bg-dot-grid {
+    background-image: radial-gradient(circle, hsl(var(--border) / 0.4) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+}
+
+@keyframes fade-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
