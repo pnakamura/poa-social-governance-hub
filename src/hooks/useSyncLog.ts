@@ -31,3 +31,20 @@ export const useUltimaSyncLog = () =>
       return data
     },
   })
+
+export const useUltimaSyncLogByTabela = (tabela: string) =>
+  useRealtimeQuery<SyncLog | null>({
+    queryKey: ['sync_log_tabela', tabela],
+    table: 'sync_log',
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('sync_log')
+        .select('*')
+        .eq('tabela_destino', tabela)
+        .order('executado_em', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (error) throw error
+      return data
+    },
+  })

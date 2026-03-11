@@ -17,15 +17,39 @@ export type PepEntry = {
   subp: number | null
   pct: number | null
   descricao: string | null
+  // Valores US$ atuais (cols N, O, P)
   n_atual: number
   o_atual: number
   p_atual: number
+  // Valores US$ base/arranque (cols R, S, T)
   r_base: number
   s_base: number
   t_base: number
   versao: string
   linha_excel: number | null
   importado_em: string
+  // Campos expandidos (migration 006)
+  codigo_wbs: string | null           // col I — "1.2.3.4"
+  k_reais_bid: number | null          // col K — BRL BID
+  l_reais_local: number | null        // col L — BRL Local
+  m_reais_total: number | null        // col M — BRL Total
+  pct_bid: number | null              // col Q — %BID
+  pmr_ref: string | null              // col Z — código PMR associado
+  pa_ref: string | null               // col AA — ref Ponto de Atenção
+  tipo_aquisicao: string | null       // col AB — ex: "Consultor Individual"
+  metodo_aquisicao: string | null     // col AC — ex: "CD", "3CV", "SN"
+  fisica_2025: number | null          // col AD — entrega prevista 2025 (0/1)
+  fisica_2026: number | null          // col AE
+  fisica_2027: number | null          // col AF
+  fisica_2028: number | null          // col AG
+  fisica_2029: number | null          // col AH
+  fisica_eop: number | null           // col AI — entrega EOP
+  desembolso_2025: number | null      // col AJ — US$ previsto 2025
+  desembolso_2026: number | null      // col AK
+  desembolso_2027: number | null      // col AL
+  desembolso_2028: number | null      // col AM
+  desembolso_2029: number | null      // col AN
+  desembolso_total: number | null     // col AO — total US$
 }
 
 export type PmrOutput = {

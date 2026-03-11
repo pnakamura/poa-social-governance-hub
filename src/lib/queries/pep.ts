@@ -59,6 +59,60 @@ export const usePEPKPIs = (versao = 'v2') =>
     },
   })
 
+/** Dados de desembolso por componente (linhas ref='C') */
+export const usePEPDesembolhos = (versao = 'v2') =>
+  useQuery({
+    queryKey: ['pep_desembolhos', versao],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pep_entries')
+        .select('comp,descricao,desembolso_2025,desembolso_2026,desembolso_2027,desembolso_2028,desembolso_2029,desembolso_total')
+        .eq('versao', versao)
+        .eq('ref', 'C')
+        .order('comp', { nullsFirst: true })
+      if (error) throw error
+      return data ?? []
+    },
+  })
+
+/** Cronograma físico — linhas PT com ao menos uma entrega prevista */
+export const usePEPCronogramaFisico = (versao = 'v2') =>
+  useQuery({
+    queryKey: ['pep_cronograma', versao],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pep_entries')
+        .select('id,codigo_wbs,descricao,comp,prod,subp,pct,tipo_aquisicao,metodo_aquisicao,pmr_ref,fisica_2025,fisica_2026,fisica_2027,fisica_2028,fisica_2029,fisica_eop')
+        .eq('versao', versao)
+        .eq('ref', 'PT')
+        .order('codigo_wbs', { nullsFirst: true })
+      if (error) throw error
+      // Filtrar apenas PT com ao menos uma entrega
+      return (data ?? []).filter(r =>
+        (r.fisica_2025 ?? 0) + (r.fisica_2026 ?? 0) + (r.fisica_2027 ?? 0) +
+        (r.fisica_2028 ?? 0) + (r.fisica_2029 ?? 0) + (r.fisica_eop ?? 0) > 0
+      )
+    },
+  })
+
+/** Detalhes de uma entrada específica pelo código WBS */
+export const usePEPEntryByWBS = (wbs: string, versao = 'v2') =>
+  useQuery<import('../supabase').PepEntry | null>({
+    queryKey: ['pep_entry_wbs', wbs, versao],
+    queryFn: async () => {
+      if (!wbs) return null
+      const { data, error } = await supabase
+        .from('pep_entries')
+        .select('*')
+        .eq('versao', versao)
+        .eq('codigo_wbs', wbs)
+        .maybeSingle()
+      if (error) throw error
+      return data
+    },
+    enabled: !!wbs,
+  })
+
 /** Dados do gráfico de barras: BID vs Local por Componente */
 export const usePEPChartData = (versao = 'v2') =>
   useQuery({

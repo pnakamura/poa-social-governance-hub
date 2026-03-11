@@ -64,6 +64,28 @@ def safe_int(v) -> int | None:
     except (ValueError, TypeError):
         return None
 
+def flag(cell) -> int:
+    """Retorna 0 ou 1 para células de entrega física (pode ser 1, 'x', True, etc.)."""
+    v = cell.value
+    if v is None:
+        return 0
+    if isinstance(v, (int, float)):
+        return 1 if v else 0
+    if isinstance(v, str):
+        return 1 if v.strip().lower() in ('1', 'x', 'sim', 'yes', 'true') else 0
+    return 0
+
+def val_or_none(cell) -> float | None:
+    """Retorna None se célula vazia, float se tiver valor."""
+    v = cell.value
+    if v is None or (isinstance(v, float) and math.isnan(v)):
+        return None
+    try:
+        f = float(v)
+        return f if f != 0.0 else None
+    except (ValueError, TypeError):
+        return None
+
 # ── PEP RS ──────────────────────────────────────────────────────────────────
 
 def import_pep(wb, versao: str, client) -> int:
@@ -85,30 +107,75 @@ def import_pep(wb, versao: str, client) -> int:
         prod = safe_int(row[2].value)  # C
         subp = safe_int(row[3].value)  # D
         pct  = safe_int(row[4].value)  # E
-        desc = txt(row[9])             # J (descrição)
+        wbs  = txt(row[8])             # I — código WBS (ex: "1.2.3.4")
+        desc = txt(row[9])             # J — descrição autoritativa
 
-        n_atual = val(row[13])   # N
-        o_atual = val(row[14])   # O
-        p_atual = val(row[15])   # P
-        r_base  = val(row[17])   # R
-        s_base  = val(row[18])   # S
-        t_base  = val(row[19])   # T
+        k_bid   = val_or_none(row[10])  # K — BRL BID
+        l_local = val_or_none(row[11])  # L — BRL Local
+        m_total = val_or_none(row[12])  # M — BRL Total
+        n_atual = val(row[13])          # N — USD BID atual
+        o_atual = val(row[14])          # O — USD Local atual
+        p_atual = val(row[15])          # P — USD Total atual
+        r_base  = val(row[17])          # R — USD BID arranque
+        s_base  = val(row[18])          # S — USD Local arranque
+        t_base  = val(row[19])          # T — USD Total arranque
+
+        # Garantir que a linha tem colunas suficientes antes de ler
+        ncols = len(row)
+        pmr_ref   = txt(row[25]) if ncols > 25 else None   # Z
+        pa_ref    = txt(row[26]) if ncols > 26 else None   # AA
+        tipo_aq   = txt(row[27]) if ncols > 27 else None   # AB — Tipo Aquisição
+        metodo_aq = txt(row[28]) if ncols > 28 else None   # AC — Método
+
+        f2025 = flag(row[29]) if ncols > 29 else 0  # AD
+        f2026 = flag(row[30]) if ncols > 30 else 0  # AE
+        f2027 = flag(row[31]) if ncols > 31 else 0  # AF
+        f2028 = flag(row[32]) if ncols > 32 else 0  # AG
+        f2029 = flag(row[33]) if ncols > 33 else 0  # AH
+        feop  = flag(row[34]) if ncols > 34 else 0  # AI
+
+        d2025 = val_or_none(row[35]) if ncols > 35 else None  # AJ
+        d2026 = val_or_none(row[36]) if ncols > 36 else None  # AK
+        d2027 = val_or_none(row[37]) if ncols > 37 else None  # AL
+        d2028 = val_or_none(row[38]) if ncols > 38 else None  # AM
+        d2029 = val_or_none(row[39]) if ncols > 39 else None  # AN
+        dtotal = val_or_none(row[40]) if ncols > 40 else None  # AO
 
         rows.append({
-            "ref":         ref,
-            "comp":        comp,
-            "prod":        prod,
-            "subp":        subp,
-            "pct":         pct,
-            "descricao":   desc,
-            "n_atual":     n_atual,
-            "o_atual":     o_atual,
-            "p_atual":     p_atual,
-            "r_base":      r_base,
-            "s_base":      s_base,
-            "t_base":      t_base,
-            "versao":      versao,
-            "linha_excel": row_num,
+            "ref":               ref,
+            "comp":              comp,
+            "prod":              prod,
+            "subp":              subp,
+            "pct":               pct,
+            "codigo_wbs":        wbs,
+            "descricao":         desc,
+            "k_reais_bid":       k_bid,
+            "l_reais_local":     l_local,
+            "m_reais_total":     m_total,
+            "n_atual":           n_atual,
+            "o_atual":           o_atual,
+            "p_atual":           p_atual,
+            "r_base":            r_base,
+            "s_base":            s_base,
+            "t_base":            t_base,
+            "pmr_ref":           pmr_ref,
+            "pa_ref":            pa_ref,
+            "tipo_aquisicao":    tipo_aq,
+            "metodo_aquisicao":  metodo_aq,
+            "fisica_2025":       f2025,
+            "fisica_2026":       f2026,
+            "fisica_2027":       f2027,
+            "fisica_2028":       f2028,
+            "fisica_2029":       f2029,
+            "fisica_eop":        feop,
+            "desembolso_2025":   d2025,
+            "desembolso_2026":   d2026,
+            "desembolso_2027":   d2027,
+            "desembolso_2028":   d2028,
+            "desembolso_2029":   d2029,
+            "desembolso_total":  dtotal,
+            "versao":            versao,
+            "linha_excel":       row_num,
         })
 
     if not rows:
@@ -282,6 +349,47 @@ def main():
 
     n_ouc = import_pmr_outcomes(wb, client)
     print(f"   ✓ PMR-Outcomes: {n_ouc} indicadores importados")
+
+    # Registrar no sync_log
+    try:
+        client.table("sync_log").insert([
+            {
+                "tabela_destino": "pep_entries",
+                "fonte": f"pep_xlsx_expanded:{planilha.name}",
+                "versao": args.versao,
+                "registros_lidos": n_pep,
+                "registros_inseridos": n_pep,
+                "registros_atualizados": 0,
+                "registros_erro": 0,
+                "status": "ok" if n_pep > 0 else "parcial",
+                "executado_por": "import_pep_supabase",
+            },
+            {
+                "tabela_destino": "pmr_outputs",
+                "fonte": f"pep_xlsx_expanded:{planilha.name}",
+                "versao": args.versao,
+                "registros_lidos": n_out,
+                "registros_inseridos": n_out,
+                "registros_atualizados": 0,
+                "registros_erro": 0,
+                "status": "ok" if n_out > 0 else "parcial",
+                "executado_por": "import_pep_supabase",
+            },
+            {
+                "tabela_destino": "pmr_outcomes",
+                "fonte": f"pep_xlsx_expanded:{planilha.name}",
+                "versao": args.versao,
+                "registros_lidos": n_ouc,
+                "registros_inseridos": n_ouc,
+                "registros_atualizados": 0,
+                "registros_erro": 0,
+                "status": "ok" if n_ouc > 0 else "parcial",
+                "executado_por": "import_pep_supabase",
+            },
+        ]).execute()
+        print("   ✓ sync_log atualizado")
+    except Exception as e:
+        print(f"   ⚠  sync_log falhou: {e}")
 
     print(f"\n✅ Importação concluída em {datetime.now().strftime('%H:%M:%S')}")
     print(f"   Total: {n_pep + n_out + n_ouc} registros\n")
