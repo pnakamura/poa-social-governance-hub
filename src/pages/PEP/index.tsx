@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react'
-import { ChevronRight, ChevronDown, Search, X, ExternalLink, DollarSign, Calendar, BarChart3, Activity } from 'lucide-react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { ChevronRight, ChevronDown, Search, X, ExternalLink, DollarSign, Calendar, BarChart3, Activity, RefreshCw } from 'lucide-react'
 import { usePEPEntries, usePEPVersoes, usePEPDesembolhos, usePEPCronogramaFisico } from '@/lib/queries/pep'
 import { usePMROutputs, usePMROutcomes } from '@/lib/queries/pmr'
 import { type PepEntry } from '@/lib/supabase'
@@ -13,6 +13,9 @@ import { EmptyState } from '@/components/shared/EmptyState'
 import { DataSourcePanel } from '@/components/DataSourcePanel'
 import { cn } from '@/lib/utils'
 import { Link } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { supabase } from '@/lib/supabase'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Legend,
 } from 'recharts'
@@ -788,11 +791,41 @@ export default function PEPPage() {
   const [moeda, setMoeda] = useState<'USD' | 'BRL'>('USD')
   const [selectedEntry, setSelectedEntry] = useState<PepEntry | null>(null)
   const [activeTab, setActiveTab] = useState('hierarquia')
+  const [syncing, setSyncing] = useState(false)
 
+  const queryClient = useQueryClient()
   const { data: versoes = [] } = usePEPVersoes()
   const { data: entries = [], isLoading } = usePEPEntries(versao)
 
   const handleSelectEntry = (entry: PepEntry) => setSelectedEntry(entry)
+
+  const handleSync = useCallback(async () => {
+    setSyncing(true)
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || 'dvqnlnxkwcrxbctujajl'
+      const resp = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/sync-pep-sheets?versao=${versao}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' } }
+      )
+      const data = await resp.json()
+      if (data.success) {
+        toast.success(`Sincronização concluída: ${data.rows} registros importados`)
+        queryClient.invalidateQueries({ queryKey: ['pep'] })
+        queryClient.invalidateQueries({ queryKey: ['pep_kpis'] })
+        queryClient.invalidateQueries({ queryKey: ['pep_versoes'] })
+        queryClient.invalidateQueries({ queryKey: ['pep_desembolhos'] })
+        queryClient.invalidateQueries({ queryKey: ['pep_cronograma'] })
+        queryClient.invalidateQueries({ queryKey: ['pep_chart'] })
+      } else {
+        toast.error(`Erro na sincronização: ${data.error}`)
+      }
+    } catch (err) {
+      toast.error('Falha ao conectar com a Edge Function')
+      console.error(err)
+    } finally {
+      setSyncing(false)
+    }
+  }, [versao, queryClient])
 
   const handleSelectWBS = (wbs: string) => {
     const entry = entries.find(e => e.codigo_wbs === wbs)
@@ -810,6 +843,18 @@ export default function PEPPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Sync button */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            onClick={handleSync}
+            disabled={syncing}
+          >
+            <RefreshCw className={cn('w-3.5 h-3.5', syncing && 'animate-spin')} />
+            {syncing ? 'Sincronizando...' : 'Sincronizar Planilha'}
+          </Button>
+
           {/* Toggle USD/BRL */}
           <div className="flex rounded-md border border-border overflow-hidden text-xs">
             <button

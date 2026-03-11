@@ -1,1 +1,4 @@
 project_id = "dvqnlnxkwcrxbctujajl"
+
+[functions.sync-pep-sheets]
+verify_jwt = false
