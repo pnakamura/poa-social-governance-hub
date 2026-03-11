@@ -36,6 +36,7 @@ export type PepEntry = {
   pct_bid: number | null              // col Q — %BID
   pmr_ref: string | null              // col Z — código PMR associado
   pa_ref: string | null               // col AA — ref Ponto de Atenção
+  secretaria: string | null            // col Y — Secretaria responsável
   tipo_aquisicao: string | null       // col AB — ex: "Consultor Individual"
   metodo_aquisicao: string | null     // col AC — ex: "CD", "3CV", "SN"
   fisica_2025: number | null          // col AD — entrega prevista 2025 (0/1)

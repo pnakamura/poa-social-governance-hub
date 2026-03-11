@@ -325,6 +325,7 @@ export type Database = {
           r_base: number | null
           ref: string
           s_base: number | null
+          secretaria: string | null
           subp: number | null
           t_base: number | null
           tipo_aquisicao: string | null
@@ -364,6 +365,7 @@ export type Database = {
           r_base?: number | null
           ref: string
           s_base?: number | null
+          secretaria?: string | null
           subp?: number | null
           t_base?: number | null
           tipo_aquisicao?: string | null
@@ -403,6 +405,7 @@ export type Database = {
           r_base?: number | null
           ref?: string
           s_base?: number | null
+          secretaria?: string | null
           subp?: number | null
           t_base?: number | null
           tipo_aquisicao?: string | null

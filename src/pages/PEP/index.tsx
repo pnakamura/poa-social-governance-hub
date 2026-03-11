@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { ChevronRight, ChevronDown, Search, X, ExternalLink, DollarSign, Calendar, BarChart3, Activity, RefreshCw, Filter } from 'lucide-react'
-import { usePEPEntries, usePEPVersoes, usePEPDesembolhos, usePEPCronogramaFisico } from '@/lib/queries/pep'
+import { ChevronRight, ChevronDown, Search, X, ExternalLink, DollarSign, Calendar, BarChart3, Activity, RefreshCw, Filter, Building2 } from 'lucide-react'
+import { usePEPEntries, usePEPVersoes, usePEPCronogramaFisico } from '@/lib/queries/pep'
 import { usePMROutputs, usePMROutcomes } from '@/lib/queries/pmr'
 import { type PepEntry } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -37,6 +37,7 @@ const fShort = (v: number, moeda: 'USD' | 'BRL') => {
 const REF_ORDER: Record<string, number> = { C: 0, SC: 1, P: 2, SP: 3, PT: 4 }
 const REF_INDENT: Record<string, number> = { C: 0, SC: 0, P: 1, SP: 2, PT: 3 }
 const ANOS = ['2025', '2026', '2027', '2028', '2029', 'EOP'] as const
+const ANOS_DESEMBOLSO = ['2025', '2026', '2027', '2028', '2029'] as const
 const COMP_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 
 const REF_LABELS: Record<string, string> = {
@@ -50,47 +51,56 @@ const REF_LABELS: Record<string, string> = {
 // ─── Sorting helper: proper hierarchy ─────────────────────────────────────────
 function sortHierarchically(entries: PepEntry[]): PepEntry[] {
   return [...entries].sort((a, b) => {
-    // First by component
     const compA = a.comp ?? 999
     const compB = b.comp ?? 999
     if (compA !== compB) return compA - compB
 
-    // C rows first within component
     const refA = REF_ORDER[a.ref] ?? 99
     const refB = REF_ORDER[b.ref] ?? 99
 
-    // For same comp, C comes first
     if (a.ref === 'C' && b.ref !== 'C') return -1
     if (b.ref === 'C' && a.ref !== 'C') return 1
-    // SC comes after C but before P
     if (a.ref === 'SC' && b.ref !== 'SC' && b.ref !== 'C') return -1
     if (b.ref === 'SC' && a.ref !== 'SC' && a.ref !== 'C') return 1
 
-    // Within same comp, sort by prod
     const prodA = a.prod ?? 999
     const prodB = b.prod ?? 999
     if (prodA !== prodB) return prodA - prodB
 
-    // P before SP/PT within same prod
     if (a.ref === 'P' && b.ref !== 'P' && b.ref !== 'C' && b.ref !== 'SC') return -1
     if (b.ref === 'P' && a.ref !== 'P' && a.ref !== 'C' && a.ref !== 'SC') return 1
 
-    // Within same prod, sort by subp
     const subpA = a.subp ?? 999
     const subpB = b.subp ?? 999
     if (subpA !== subpB) return subpA - subpB
 
-    // SP before PT within same subp
     if (a.ref === 'SP' && b.ref === 'PT') return -1
     if (b.ref === 'SP' && a.ref === 'PT') return 1
 
-    // Within same subp, sort by pct
     const pctA = a.pct ?? 999
     const pctB = b.pct ?? 999
     if (pctA !== pctB) return pctA - pctB
 
-    // Fallback to ref order
     return refA - refB
+  })
+}
+
+// ─── Helper: filter entries by secretaria (keeping parent hierarchy) ──────────
+function filterBySecretaria(entries: PepEntry[], secretaria: string): PepEntry[] {
+  if (secretaria === 'todos') return entries
+  // Find PTs that match the secretaria
+  const matchingPTs = entries.filter(e => e.ref === 'PT' && e.secretaria === secretaria)
+  // Collect parent keys we need to keep
+  const keepComps = new Set(matchingPTs.map(e => e.comp))
+  const keepProds = new Set(matchingPTs.map(e => `${e.comp}:${e.prod}`))
+  const keepSubps = new Set(matchingPTs.map(e => `${e.comp}:${e.prod}:${e.subp}`))
+
+  return entries.filter(e => {
+    if (e.ref === 'PT') return e.secretaria === secretaria
+    if (e.ref === 'C' || e.ref === 'SC') return keepComps.has(e.comp)
+    if (e.ref === 'P') return keepProds.has(`${e.comp}:${e.prod}`)
+    if (e.ref === 'SP') return keepSubps.has(`${e.comp}:${e.prod}:${e.subp}`)
+    return false
   })
 }
 
@@ -168,6 +178,7 @@ function DetailPanel({ entry, onClose, moeda }: { entry: PepEntry | null; onClos
               {entry.prod != null && <><div className="text-muted-foreground">Produto</div><div>{entry.prod}</div></>}
               {entry.subp != null && <><div className="text-muted-foreground">Subproduto</div><div>{entry.subp}</div></>}
               {entry.pct  != null && <><div className="text-muted-foreground">P. Trabalho</div><div>{entry.pct}</div></>}
+              {entry.secretaria && <><div className="text-muted-foreground">Secretaria</div><div>{entry.secretaria}</div></>}
             </div>
           </section>
 
@@ -286,7 +297,6 @@ function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry }: 
   const [filtroComp, setFiltroComp] = useState('todos')
   const [showFilters, setShowFilters] = useState(false)
 
-  // Sort entries hierarchically
   const entries = useMemo(() => sortHierarchically(rawEntries), [rawEntries])
 
   const comps = useMemo(() => [...new Set(entries.filter(e => e.ref === 'C').map(e => e.comp))].sort((a, b) => (a ?? 0) - (b ?? 0)), [entries])
@@ -333,12 +343,9 @@ function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry }: 
   }, [search, entries])
 
   const isVisible = (row: PepEntry): boolean => {
-    // Apply ref filter
     if (filtroRef !== 'todos' && row.ref !== filtroRef) {
-      // But keep parent rows visible for context
       if (filtroRef === 'PT') {
         if (!['C', 'P', 'SP', 'PT'].includes(row.ref)) return false
-        // Only show ancestors of PT rows
         if (row.ref !== 'PT') {
           const hasPTChild = entries.some(e =>
             e.ref === 'PT' && e.comp === row.comp &&
@@ -355,7 +362,6 @@ function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry }: 
       }
     }
 
-    // Apply component filter
     if (filtroComp !== 'todos' && String(row.comp) !== filtroComp) return false
 
     if (matchingIds !== null) {
@@ -381,7 +387,6 @@ function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry }: 
     return true
   }
 
-  // Totals from C rows, respecting moeda
   const totals = useMemo(() => {
     const cRows = entries.filter(e => e.ref === 'C' && (filtroComp === 'todos' || String(e.comp) === filtroComp))
     if (moeda === 'BRL') {
@@ -603,26 +608,30 @@ function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry }: 
 }
 
 // ─── Tab 2: Cronograma Físico ─────────────────────────────────────────────────
-function CronogramaTab({ onSelectWBS, allEntries }: { onSelectWBS: (wbs: string) => void; allEntries: PepEntry[] }) {
-  const { data: rows = [], isLoading } = usePEPCronogramaFisico()
-  const [filtroComp, setFiltroComp] = useState('todos')
+function CronogramaTab({ entries, onSelectWBS }: { entries: PepEntry[]; onSelectWBS: (wbs: string) => void }) {
   const [filtroTipo, setFiltroTipo] = useState('todos')
 
+  // Use entries already filtered by secretaria from parent
+  const rows = useMemo(() =>
+    entries.filter(r =>
+      r.ref === 'PT' &&
+      ((r.fisica_2025 ?? 0) + (r.fisica_2026 ?? 0) + (r.fisica_2027 ?? 0) +
+       (r.fisica_2028 ?? 0) + (r.fisica_2029 ?? 0) + (r.fisica_eop ?? 0) > 0)
+    ), [entries])
+
   const tipos = useMemo(() => [...new Set(rows.map(r => r.tipo_aquisicao).filter(Boolean))].sort(), [rows])
-  const comps = useMemo(() => [...new Set(rows.map(r => r.comp).filter(Boolean))].sort((a, b) => (a ?? 0) - (b ?? 0)), [rows])
+  const comps = useMemo(() => [...new Set(rows.map(r => r.comp).filter(c => c != null))].sort((a, b) => (a ?? 0) - (b ?? 0)), [rows])
 
   const filtered = rows.filter(r => {
-    if (filtroComp !== 'todos' && String(r.comp) !== filtroComp) return false
     if (filtroTipo !== 'todos' && r.tipo_aquisicao !== filtroTipo) return false
     return true
   })
 
   const descComp = (comp: number | null) => {
-    const c = allEntries.find(e => e.ref === 'C' && e.comp === comp)
+    const c = entries.find(e => e.ref === 'C' && e.comp === comp)
     return c?.descricao ?? `Componente ${comp}`
   }
 
-  if (isLoading) return <div className="space-y-2 animate-pulse">{[...Array(6)].map((_, i) => <div key={i} className="h-8 bg-muted rounded" />)}</div>
   if (rows.length === 0) return <EmptyState icon={Calendar} title="Nenhuma entrega física cadastrada" description="Importe o PEP com os dados de entregas físicas (cols AD-AI) para visualizar o cronograma." />
 
   const byComp = comps.reduce<Record<string, typeof filtered>>((acc, comp) => {
@@ -635,13 +644,6 @@ function CronogramaTab({ onSelectWBS, allEntries }: { onSelectWBS: (wbs: string)
   return (
     <div className="space-y-4">
       <div className="flex gap-2 flex-wrap items-center">
-        <Select value={filtroComp} onValueChange={setFiltroComp}>
-          <SelectTrigger className="w-44 h-8 text-xs"><SelectValue placeholder="Componente" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos os componentes</SelectItem>
-            {comps.map(c => <SelectItem key={c} value={String(c)}>C{c}</SelectItem>)}
-          </SelectContent>
-        </Select>
         <Select value={filtroTipo} onValueChange={setFiltroTipo}>
           <SelectTrigger className="w-44 h-8 text-xs"><SelectValue placeholder="Tipo de Aquisição" /></SelectTrigger>
           <SelectContent>
@@ -711,17 +713,39 @@ function CronogramaTab({ onSelectWBS, allEntries }: { onSelectWBS: (wbs: string)
   )
 }
 
-// ─── Tab 3: Desembolsos ───────────────────────────────────────────────────────
-function DesembolsosTab({ moeda }: { moeda: 'USD' | 'BRL' }) {
-  const { data: compRows = [], isLoading } = usePEPDesembolhos()
+// ─── Tab 3: Desembolsos (revised — uses filtered entries) ─────────────────────
+function DesembolsosTab({ entries, moeda }: { entries: PepEntry[]; moeda: 'USD' | 'BRL' }) {
+  // Aggregate by component from entries (works with secretaria filter)
+  const compRows = useMemo(() => {
+    const comps = [...new Set(entries.filter(e => e.ref === 'C').map(e => e.comp))].sort((a, b) => (a ?? 0) - (b ?? 0))
+    // Get PT rows that have disbursement data
+    const ptRows = entries.filter(e => e.ref === 'PT')
+
+    return comps.map(comp => {
+      const cRow = entries.find(e => e.ref === 'C' && e.comp === comp)
+      const pts = ptRows.filter(e => e.comp === comp)
+      // Sum PT-level disbursements
+      const sumField = (field: keyof PepEntry) => pts.reduce((s, r) => s + ((r[field] as number | null) ?? 0), 0)
+      return {
+        comp,
+        descricao: cRow?.descricao ?? `Componente ${comp}`,
+        desembolso_2025: sumField('desembolso_2025'),
+        desembolso_2026: sumField('desembolso_2026'),
+        desembolso_2027: sumField('desembolso_2027'),
+        desembolso_2028: sumField('desembolso_2028'),
+        desembolso_2029: sumField('desembolso_2029'),
+        desembolso_total: sumField('desembolso_total'),
+      }
+    }).filter(r => r.desembolso_total > 0 || r.desembolso_2025 > 0)
+  }, [entries])
 
   const chartData = useMemo(() => {
-    return (['2025','2026','2027','2028','2029'] as const).map(ano => {
+    return ANOS_DESEMBOLSO.map(ano => {
       const entry: Record<string, number | string> = { ano }
-      compRows.forEach((r, i) => {
+      compRows.forEach(r => {
+        const label = (r.descricao ?? '').replace(/^C\d+\s*[-–]\s*/i, '').substring(0, 18)
         const key = `desembolso_${ano}` as keyof typeof r
-        const label = (r.descricao ?? `C${i+1}`).replace(/^C\d+\s*[-–]\s*/i,'').substring(0, 18)
-        entry[label] = (r[key] as number | null) ?? 0
+        entry[label] = (r[key] as number) ?? 0
       })
       return entry
     })
@@ -733,14 +757,13 @@ function DesembolsosTab({ moeda }: { moeda: 'USD' | 'BRL' }) {
   )
 
   const totaisPorAno = useMemo(() =>
-    (['2025','2026','2027','2028','2029'] as const).map(ano => {
+    ANOS_DESEMBOLSO.map(ano => {
       const key = `desembolso_${ano}` as keyof (typeof compRows)[0]
-      return { ano, total: compRows.reduce((s, r) => s + ((r[key] as number | null) ?? 0), 0) }
+      return { ano, total: compRows.reduce((s, r) => s + ((r[key] as number) ?? 0), 0) }
     }),
     [compRows]
   )
 
-  if (isLoading) return <div className="space-y-2 animate-pulse">{[...Array(4)].map((_, i) => <div key={i} className="h-20 bg-muted rounded" />)}</div>
   if (compRows.length === 0) return <EmptyState icon={DollarSign} title="Dados de desembolso indisponíveis" description="Importe o PEP expandido para visualizar os desembolsos anuais." />
 
   const prefix = moeda === 'BRL' ? 'R$' : 'US$'
@@ -801,7 +824,7 @@ function DesembolsosTab({ moeda }: { moeda: 'USD' | 'BRL' }) {
               <thead>
                 <tr className="gradient-bid text-white">
                   <th className="text-left px-3 py-2.5">Componente</th>
-                  {(['2025','2026','2027','2028','2029'] as const).map(a => (
+                  {ANOS_DESEMBOLSO.map(a => (
                     <th key={a} className="text-right px-3 py-2.5">{a}</th>
                   ))}
                   <th className="text-right px-3 py-2.5 font-semibold">Total</th>
@@ -811,11 +834,11 @@ function DesembolsosTab({ moeda }: { moeda: 'USD' | 'BRL' }) {
                 {compRows.map((r, i) => (
                   <tr key={i} className="border-b border-border/30 hover:bg-muted/30">
                     <td className="px-3 py-2 font-medium max-w-[200px] truncate" title={r.descricao ?? ''}>{r.descricao}</td>
-                    {(['2025','2026','2027','2028','2029'] as const).map(ano => {
+                    {ANOS_DESEMBOLSO.map(ano => {
                       const key = `desembolso_${ano}` as keyof typeof r
-                      return <td key={ano} className="px-3 py-2 text-right tabular-nums">{fShort((r[key] as number | null) ?? 0, moeda)}</td>
+                      return <td key={ano} className="px-3 py-2 text-right tabular-nums">{fShort((r[key] as number) ?? 0, moeda)}</td>
                     })}
-                    <td className="px-3 py-2 text-right tabular-nums font-semibold">{fShort((r.desembolso_total as number | null) ?? 0, moeda)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums font-semibold">{fShort(r.desembolso_total ?? 0, moeda)}</td>
                   </tr>
                 ))}
                 <tr className="border-t-2 border-border bg-muted/20 font-semibold">
@@ -824,7 +847,7 @@ function DesembolsosTab({ moeda }: { moeda: 'USD' | 'BRL' }) {
                     <td key={ano} className="px-3 py-2 text-right tabular-nums">{fShort(total, moeda)}</td>
                   ))}
                   <td className="px-3 py-2 text-right tabular-nums">
-                    {fShort(compRows.reduce((s, r) => s + ((r.desembolso_total as number | null) ?? 0), 0), moeda)}
+                    {fShort(compRows.reduce((s, r) => s + (r.desembolso_total ?? 0), 0), moeda)}
                   </td>
                 </tr>
               </tbody>
@@ -956,6 +979,7 @@ function PMRTab({ pepEntries }: { pepEntries: PepEntry[] }) {
 export default function PEPPage() {
   const [versao, setVersao] = useState('v2')
   const [moeda, setMoeda] = useState<'USD' | 'BRL'>('USD')
+  const [filtroSecretaria, setFiltroSecretaria] = useState('todos')
   const [selectedEntry, setSelectedEntry] = useState<PepEntry | null>(null)
   const [activeTab, setActiveTab] = useState('hierarquia')
   const [syncing, setSyncing] = useState(false)
@@ -963,6 +987,18 @@ export default function PEPPage() {
   const queryClient = useQueryClient()
   const { data: versoes = [] } = usePEPVersoes()
   const { data: entries = [], isLoading } = usePEPEntries(versao)
+
+  // Derive secretaria list from PT entries
+  const secretarias = useMemo(() =>
+    [...new Set(entries.filter(e => e.ref === 'PT' && e.secretaria).map(e => e.secretaria!))].sort(),
+    [entries]
+  )
+
+  // Apply global secretaria filter
+  const filteredEntries = useMemo(() =>
+    filterBySecretaria(entries, filtroSecretaria),
+    [entries, filtroSecretaria]
+  )
 
   const handleSelectEntry = (entry: PepEntry) => setSelectedEntry(entry)
 
@@ -1008,7 +1044,7 @@ export default function PEPPage() {
             Estrutura WBS C→P→SP→PT · valores BID e Local · cronograma físico e desembolsos
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="outline"
             size="sm"
@@ -1019,6 +1055,18 @@ export default function PEPPage() {
             <RefreshCw className={cn('w-3.5 h-3.5', syncing && 'animate-spin')} />
             {syncing ? 'Sincronizando...' : 'Sincronizar Planilha'}
           </Button>
+
+          {/* Secretaria filter */}
+          <Select value={filtroSecretaria} onValueChange={setFiltroSecretaria}>
+            <SelectTrigger className={cn('w-44 h-8 text-xs', filtroSecretaria !== 'todos' && 'border-primary')}>
+              <Building2 className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
+              <SelectValue placeholder="Secretaria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas as Secretarias</SelectItem>
+              {secretarias.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
 
           <div className="flex rounded-md border border-border overflow-hidden text-xs">
             <button
@@ -1041,6 +1089,17 @@ export default function PEPPage() {
           )}
         </div>
       </div>
+
+      {filtroSecretaria !== 'todos' && (
+        <div className="flex items-center gap-2 text-xs px-3 py-2 bg-primary/5 rounded-lg border border-primary/20">
+          <Building2 className="w-3.5 h-3.5 text-primary" />
+          <span>Filtrando por <strong>{filtroSecretaria}</strong></span>
+          <span className="text-muted-foreground">({filteredEntries.filter(e => e.ref === 'PT').length} pacotes de trabalho)</span>
+          <Button variant="ghost" size="sm" className="h-6 text-xs ml-auto" onClick={() => setFiltroSecretaria('todos')}>
+            <X className="w-3 h-3 mr-1" /> Limpar
+          </Button>
+        </div>
+      )}
 
       <DataSourcePanel
         source="PEP RS — PEP_PMR.xlsx"
@@ -1068,7 +1127,7 @@ export default function PEPPage() {
 
         <TabsContent value="hierarquia" className="mt-4">
           <HierarchyTab
-            entries={entries}
+            entries={filteredEntries}
             isLoading={isLoading}
             moeda={moeda}
             onSelectEntry={handleSelectEntry}
@@ -1076,15 +1135,15 @@ export default function PEPPage() {
         </TabsContent>
 
         <TabsContent value="cronograma" className="mt-4">
-          <CronogramaTab onSelectWBS={handleSelectWBS} allEntries={entries} />
+          <CronogramaTab entries={filteredEntries} onSelectWBS={handleSelectWBS} />
         </TabsContent>
 
         <TabsContent value="desembolsos" className="mt-4">
-          <DesembolsosTab moeda={moeda} />
+          <DesembolsosTab entries={filteredEntries} moeda={moeda} />
         </TabsContent>
 
         <TabsContent value="pmr" className="mt-4">
-          <PMRTab pepEntries={entries} />
+          <PMRTab pepEntries={filteredEntries} />
         </TabsContent>
       </Tabs>
 

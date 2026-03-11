@@ -163,6 +163,7 @@ Deno.serve(async (req) => {
         r_base: num(row[17]),
         s_base: num(row[18]),
         t_base: num(row[19]),
+        secretaria: ncols > 24 ? txt(row[24]) : null,
         pmr_ref: ncols > 25 ? txt(row[25]) : null,
         pa_ref: ncols > 26 ? txt(row[26]) : null,
         tipo_aquisicao: ncols > 27 ? txt(row[27]) : null,
