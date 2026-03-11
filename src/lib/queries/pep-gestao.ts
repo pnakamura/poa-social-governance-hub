@@ -23,6 +23,19 @@ export interface PepImpedimento {
   created_at: string
 }
 
+export interface PepRisco {
+  id: string
+  pep_entry_id: string
+  risco_global_id: string | null
+  descricao: string
+  probabilidade: string
+  impacto: string
+  mitigacao: string | null
+  status: string
+  created_at: string
+  updated_at: string
+}
+
 export interface PepHistorico {
   id: string
   pep_entry_id: string
@@ -195,4 +208,56 @@ export const useDeleteEvidencia = () => {
 export const getEvidenciaUrl = (wbs: string, fileName: string) => {
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(`${wbs}/${fileName}`)
   return data.publicUrl
+}
+
+// ─── Riscos do Item PEP ───────────────────────────────────────────────────────
+export const usePepRiscos = (entryId: string | undefined) =>
+  useQuery<PepRisco[]>({
+    queryKey: ['pep_riscos', entryId],
+    queryFn: async () => {
+      if (!entryId) return []
+      const { data, error } = await supabase
+        .from('pep_riscos')
+        .select('*')
+        .eq('pep_entry_id', entryId)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return (data ?? []) as PepRisco[]
+    },
+    enabled: !!entryId,
+  })
+
+export const useAddPepRisco = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: { pep_entry_id: string; descricao: string; probabilidade: string; impacto: string; mitigacao?: string; risco_global_id?: string }) => {
+      const { error } = await supabase.from('pep_riscos').insert(payload as any)
+      if (error) throw error
+    },
+    onSuccess: (_, v) => qc.invalidateQueries({ queryKey: ['pep_riscos', v.pep_entry_id] }),
+  })
+}
+
+export const useUpdatePepRisco = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, pep_entry_id, ...updates }: { id: string; pep_entry_id: string } & Partial<PepRisco>) => {
+      const { error } = await supabase.from('pep_riscos').update(updates as any).eq('id', id)
+      if (error) throw error
+      return pep_entry_id
+    },
+    onSuccess: (eid) => qc.invalidateQueries({ queryKey: ['pep_riscos', eid] }),
+  })
+}
+
+export const useDeletePepRisco = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, pep_entry_id }: { id: string; pep_entry_id: string }) => {
+      const { error } = await supabase.from('pep_riscos').delete().eq('id', id)
+      if (error) throw error
+      return pep_entry_id
+    },
+    onSuccess: (eid) => qc.invalidateQueries({ queryKey: ['pep_riscos', eid] }),
+  })
 }

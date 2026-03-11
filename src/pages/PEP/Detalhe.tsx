@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit2, Save, X, Plus, Trash2, Download, Upload, Image as ImageIcon, FileText, Clock, AlertTriangle, ChevronRight, Camera } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { ArrowLeft, Edit2, Save, X, Plus, Trash2, Download, Upload, Image as ImageIcon, FileText, Clock, AlertTriangle, ChevronRight, Camera, ShieldAlert, Link2 } from 'lucide-react'
 import logoPoaSocial from '@/assets/logo-poa-social.png'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -23,6 +24,8 @@ import {
   usePepImpedimentos, useAddImpedimento, useToggleImpedimento, useDeleteImpedimento,
   usePepHistorico,
   usePepEvidencias, useUploadEvidencia, useDeleteEvidencia, getEvidenciaUrl,
+  usePepRiscos, useAddPepRisco, useUpdatePepRisco, useDeletePepRisco,
+  type PepRisco,
 } from '@/lib/queries/pep-gestao'
 
 // ─── Formatadores ─────────────────────────────────────────────────────────────
@@ -85,6 +88,10 @@ export default function PEPDetalhePage() {
   const { data: evidencias = [] } = usePepEvidencias(decodedWbs)
   const uploadEvidencia = useUploadEvidencia()
   const deleteEvidencia = useDeleteEvidencia()
+  const { data: pepRiscos = [] } = usePepRiscos(entry?.id)
+  const addPepRisco = useAddPepRisco()
+  const updatePepRisco = useUpdatePepRisco()
+  const deletePepRisco = useDeletePepRisco()
 
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({
@@ -145,6 +152,56 @@ export default function PEPDetalhePage() {
     await addImpedimento.mutateAsync({ pep_entry_id: entry.id, descricao: newImpedimento.trim() })
     setNewImpedimento('')
   }, [entry, newImpedimento, addImpedimento])
+
+  // ─── Riscos do Item ──────────────────────────────────────────────
+  const [showRiscoForm, setShowRiscoForm] = useState(false)
+  const [riscoForm, setRiscoForm] = useState({ descricao: '', probabilidade: 'Média', impacto: 'Médio', mitigacao: '' })
+  const [vinculandoRisco, setVinculandoRisco] = useState(false)
+  const [riscoGlobalSearch, setRiscoGlobalSearch] = useState('')
+
+  const handleAddRisco = useCallback(async () => {
+    if (!entry || !riscoForm.descricao.trim()) return
+    await addPepRisco.mutateAsync({ pep_entry_id: entry.id, ...riscoForm, mitigacao: riscoForm.mitigacao || undefined })
+    setRiscoForm({ descricao: '', probabilidade: 'Média', impacto: 'Médio', mitigacao: '' })
+    setShowRiscoForm(false)
+    toast.success('Risco adicionado')
+  }, [entry, riscoForm, addPepRisco])
+
+  const handleVincularRiscoGlobal = useCallback(async (risco: { id: string; descricao: string; probabilidade: number; impacto: number; mitigacao: string | null }) => {
+    if (!entry) return
+    const probMap: Record<number, string> = { 1: 'Muito Baixa', 2: 'Baixa', 3: 'Média', 4: 'Alta', 5: 'Muito Alta' }
+    const impMap: Record<number, string> = { 1: 'Muito Baixo', 2: 'Baixo', 3: 'Médio', 4: 'Alto', 5: 'Muito Alto' }
+    await addPepRisco.mutateAsync({
+      pep_entry_id: entry.id,
+      risco_global_id: risco.id,
+      descricao: risco.descricao,
+      probabilidade: probMap[risco.probabilidade] ?? 'Média',
+      impacto: impMap[risco.impacto] ?? 'Médio',
+      mitigacao: risco.mitigacao ?? undefined,
+    })
+    setVinculandoRisco(false)
+    setRiscoGlobalSearch('')
+    toast.success('Risco global vinculado')
+  }, [entry, addPepRisco])
+
+  const handleToggleRiscoStatus = useCallback(async (risco: PepRisco) => {
+    if (!entry) return
+    const newStatus = risco.status === 'Ativo' ? 'Mitigado' : 'Ativo'
+    await updatePepRisco.mutateAsync({ id: risco.id, pep_entry_id: entry.id, status: newStatus })
+  }, [entry, updatePepRisco])
+
+  // Query riscos globais para vincular
+  const { data: riscosGlobais = [] } = useQuery({
+    queryKey: ['riscos_globais_search', riscoGlobalSearch],
+    queryFn: async () => {
+      if (!riscoGlobalSearch || riscoGlobalSearch.length < 2) return []
+      const { data, error } = await supabase.from('riscos').select('id, descricao, probabilidade, impacto, mitigacao').ilike('descricao', `%${riscoGlobalSearch}%`).limit(10)
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: riscoGlobalSearch.length >= 2,
+  })
+
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const handleFileUpload = useCallback(async (files: FileList | null) => {
@@ -464,7 +521,146 @@ export default function PEPDetalhePage() {
             </CardContent>
           </Card>
 
-          {/* Evidências */}
+          {/* Riscos do Item */}
+          <Card className="rounded-xl border-0 shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-red-100 to-red-50 dark:from-red-900/30 dark:to-red-900/10 flex items-center justify-center">
+                    <ShieldAlert className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+                  </div>
+                  Riscos ({pepRiscos.filter(r => r.status === 'Ativo').length} ativos)
+                </CardTitle>
+                <div className="flex gap-1">
+                  <Button variant="outline" size="sm" className="rounded-lg text-xs h-7" onClick={() => setVinculandoRisco(v => !v)}>
+                    <Link2 className="w-3 h-3 mr-1" />Vincular
+                  </Button>
+                  <Button variant="outline" size="sm" className="rounded-lg text-xs h-7" onClick={() => setShowRiscoForm(v => !v)}>
+                    <Plus className="w-3 h-3 mr-1" />Novo
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {/* Vincular risco global */}
+              {vinculandoRisco && (
+                <div className="space-y-2 p-3 rounded-lg bg-muted/30 border border-border/50">
+                  <p className="text-xs font-medium text-muted-foreground">Buscar risco global para vincular</p>
+                  <Input
+                    placeholder="Digite para buscar riscos..."
+                    value={riscoGlobalSearch}
+                    onChange={e => setRiscoGlobalSearch(e.target.value)}
+                    className="rounded-lg"
+                  />
+                  {riscosGlobais.length > 0 && (
+                    <div className="space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
+                      {riscosGlobais.map(r => (
+                        <button
+                          key={r.id}
+                          className="w-full text-left text-xs p-2 rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-2"
+                          onClick={() => handleVincularRiscoGlobal(r)}
+                        >
+                          <ShieldAlert className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                          <span className="truncate">{r.descricao}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Form novo risco */}
+              {showRiscoForm && (
+                <div className="space-y-3 p-3 rounded-lg bg-muted/30 border border-border/50">
+                  <Input
+                    placeholder="Descrição do risco..."
+                    value={riscoForm.descricao}
+                    onChange={e => setRiscoForm(f => ({ ...f, descricao: e.target.value }))}
+                    className="rounded-lg"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-muted-foreground">Probabilidade</label>
+                      <Select value={riscoForm.probabilidade} onValueChange={v => setRiscoForm(f => ({ ...f, probabilidade: v }))}>
+                        <SelectTrigger className="mt-0.5 h-8 text-xs rounded-lg"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {['Muito Baixa', 'Baixa', 'Média', 'Alta', 'Muito Alta'].map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-muted-foreground">Impacto</label>
+                      <Select value={riscoForm.impacto} onValueChange={v => setRiscoForm(f => ({ ...f, impacto: v }))}>
+                        <SelectTrigger className="mt-0.5 h-8 text-xs rounded-lg"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {['Muito Baixo', 'Baixo', 'Médio', 'Alto', 'Muito Alto'].map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <Textarea
+                    placeholder="Ação de mitigação (opcional)..."
+                    value={riscoForm.mitigacao}
+                    onChange={e => setRiscoForm(f => ({ ...f, mitigacao: e.target.value }))}
+                    className="rounded-lg min-h-[60px]"
+                    rows={2}
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <Button variant="ghost" size="sm" className="rounded-lg text-xs" onClick={() => setShowRiscoForm(false)}>Cancelar</Button>
+                    <Button size="sm" className="rounded-lg text-xs" onClick={handleAddRisco} disabled={!riscoForm.descricao.trim()}>Adicionar</Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Lista de riscos */}
+              {pepRiscos.length === 0 && !showRiscoForm && !vinculandoRisco && (
+                <p className="text-xs text-muted-foreground text-center py-2">Nenhum risco registrado</p>
+              )}
+              <div className="space-y-2">
+                {pepRiscos.map(risco => {
+                  const nivelColors: Record<string, string> = {
+                    'Muito Baixa': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+                    'Baixa': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+                    'Média': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+                    'Alta': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+                    'Muito Alta': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+                    'Muito Baixo': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+                    'Baixo': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+                    'Médio': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+                    'Alto': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+                    'Muito Alto': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+                  }
+                  return (
+                    <div key={risco.id} className={cn('group p-3 rounded-lg border transition-all duration-200 hover:shadow-sm', risco.status === 'Ativo' ? 'border-border/60 bg-background' : 'border-border/30 bg-muted/20 opacity-60')}>
+                      <div className="flex items-start gap-2">
+                        <button onClick={() => handleToggleRiscoStatus(risco)} className="mt-0.5">
+                          <ShieldAlert className={cn('w-4 h-4', risco.status === 'Ativo' ? 'text-red-500' : 'text-muted-foreground')} />
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <p className={cn('text-sm', risco.status !== 'Ativo' && 'line-through text-muted-foreground')}>{risco.descricao}</p>
+                          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                            <Badge className={cn('text-[9px] h-4 px-1.5 rounded-full', nivelColors[risco.probabilidade])}>P: {risco.probabilidade}</Badge>
+                            <Badge className={cn('text-[9px] h-4 px-1.5 rounded-full', nivelColors[risco.impacto])}>I: {risco.impacto}</Badge>
+                            <Badge variant="outline" className="text-[9px] h-4 px-1.5 rounded-full">{risco.status}</Badge>
+                            {risco.risco_global_id && <Badge variant="outline" className="text-[9px] h-4 px-1.5 rounded-full"><Link2 className="w-2.5 h-2.5 mr-0.5" />Global</Badge>}
+                          </div>
+                          {risco.mitigacao && <p className="text-[11px] text-muted-foreground mt-1.5 italic">Mitigação: {risco.mitigacao}</p>}
+                        </div>
+                        <Button
+                          variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 rounded-lg flex-shrink-0"
+                          onClick={() => entry && deletePepRisco.mutate({ id: risco.id, pep_entry_id: entry.id })}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+
           <Card className="rounded-xl border-0 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Repositório de Evidências</CardTitle>
