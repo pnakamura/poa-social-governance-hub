@@ -160,9 +160,9 @@ export default function PEPDetalhePage() {
   const [riscoGlobalSearch, setRiscoGlobalSearch] = useState('')
 
   const handleAddRisco = useCallback(async () => {
-    if (!entry || !riscoForm.descricao.trim()) return
+    if (!entry || !riscoForm.titulo_risco.trim()) return
     await addPepRisco.mutateAsync({ pep_entry_id: entry.id, ...riscoForm, mitigacao: riscoForm.mitigacao || undefined })
-    setRiscoForm({ descricao: '', probabilidade: 'Média', impacto: 'Médio', mitigacao: '' })
+    setRiscoForm({ titulo_risco: '', probabilidade: 'Média', impacto: 'Médio', mitigacao: '' })
     setShowRiscoForm(false)
     toast.success('Risco adicionado')
   }, [entry, riscoForm, addPepRisco])
