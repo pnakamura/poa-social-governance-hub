@@ -85,18 +85,25 @@ function sortHierarchically(entries: PepEntry[]): PepEntry[] {
   })
 }
 
-// ─── Helper: filter entries by secretaria (keeping parent hierarchy) ──────────
-function filterBySecretaria(entries: PepEntry[], secretaria: string): PepEntry[] {
-  if (secretaria === 'todos') return entries
-  // Find PTs that match the secretaria
-  const matchingPTs = entries.filter(e => e.ref === 'PT' && e.secretaria === secretaria)
-  // Collect parent keys we need to keep
+// ─── Helper: filter entries by secretaria and lote (keeping parent hierarchy) ──
+function filterEntries(entries: PepEntry[], secretaria: string, lote: string): PepEntry[] {
+  if (secretaria === 'todos' && lote === 'todos') return entries
+  const matchingPTs = entries.filter(e => {
+    if (e.ref !== 'PT') return false
+    if (secretaria !== 'todos' && e.secretaria !== secretaria) return false
+    if (lote !== 'todos' && (e as any).lote !== lote) return false
+    return true
+  })
   const keepComps = new Set(matchingPTs.map(e => e.comp))
   const keepProds = new Set(matchingPTs.map(e => `${e.comp}:${e.prod}`))
   const keepSubps = new Set(matchingPTs.map(e => `${e.comp}:${e.prod}:${e.subp}`))
 
   return entries.filter(e => {
-    if (e.ref === 'PT') return e.secretaria === secretaria
+    if (e.ref === 'PT') {
+      if (secretaria !== 'todos' && e.secretaria !== secretaria) return false
+      if (lote !== 'todos' && (e as any).lote !== lote) return false
+      return true
+    }
     if (e.ref === 'C' || e.ref === 'SC') return keepComps.has(e.comp)
     if (e.ref === 'P') return keepProds.has(`${e.comp}:${e.prod}`)
     if (e.ref === 'SP') return keepSubps.has(`${e.comp}:${e.prod}:${e.subp}`)
