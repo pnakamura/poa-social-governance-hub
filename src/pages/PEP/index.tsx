@@ -394,45 +394,10 @@ function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry }: 
     return true
   }
 
-  const totals = useMemo(() => {
-    const cRows = entries.filter(e => e.ref === 'C' && (filtroComp === 'todos' || String(e.comp) === filtroComp))
-    if (moeda === 'BRL') {
-      return {
-        bid:   cRows.reduce((s, r) => s + (r.k_reais_bid ?? 0), 0),
-        local: cRows.reduce((s, r) => s + (r.l_reais_local ?? 0), 0),
-        total: cRows.reduce((s, r) => s + (r.m_reais_total ?? 0), 0),
-        base:  null as number | null,
-      }
-    }
-    return {
-      bid:   cRows.reduce((s, r) => s + (r.n_atual ?? 0), 0),
-      local: cRows.reduce((s, r) => s + (r.o_atual ?? 0), 0),
-      total: cRows.reduce((s, r) => s + (r.p_atual ?? 0), 0),
-      base:  cRows.reduce((s, r) => s + (r.t_base ?? 0), 0),
-    }
-  }, [entries, moeda, filtroComp])
-
-  const f = moeda === 'BRL' ? fBRL : fUSD
-
   const visible = entries.filter(isVisible)
 
   return (
     <div className="space-y-4">
-      {/* KPI strip */}
-      <div className={cn('grid gap-3', moeda === 'USD' ? 'grid-cols-4' : 'grid-cols-3')}>
-        {[
-          { label: `Total BID`, value: f(totals.bid) },
-          { label: `Total Local`, value: f(totals.local) },
-          { label: `Total Programa`, value: f(totals.total) },
-          ...(moeda === 'USD' && totals.base != null ? [{ label: 'Total Base', value: fUSD(totals.base) }] : []),
-        ].map(item => (
-          <Card key={item.label} className="p-3">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{item.label}</p>
-            <p className="text-lg font-bold tabular-nums mt-0.5">{item.value}</p>
-          </Card>
-        ))}
-      </div>
-
       {/* Busca + controles + filtros */}
       <div className="space-y-2">
         <div className="flex items-center gap-2 flex-wrap">
