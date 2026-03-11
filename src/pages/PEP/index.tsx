@@ -817,15 +817,14 @@ function DesembolsosTab({ entries, moeda, filtroSecretaria }: { entries: PepEntr
               />
               <Legend wrapperStyle={{ fontSize: '11px' }} />
               {compLabels.map((label, i) => (
-                <Area
-                  key={label}
-                  type="monotone"
-                  dataKey={label}
-                  stackId="1"
-                  stroke={COMP_COLORS[i % COMP_COLORS.length]}
-                  fill={COMP_COLORS[i % COMP_COLORS.length]}
-                  fillOpacity={0.7}
-                />
+                 <Area
+                   key={label}
+                   type="monotone"
+                   dataKey={label}
+                   stroke={COMP_COLORS[i % COMP_COLORS.length]}
+                   fill={COMP_COLORS[i % COMP_COLORS.length]}
+                   fillOpacity={0.15}
+                 />
               ))}
             </AreaChart>
           </ResponsiveContainer>
