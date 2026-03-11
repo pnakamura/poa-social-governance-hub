@@ -159,6 +159,7 @@ Deno.serve(async (req) => {
         prod: intOrNull(row[2]),
         subp: intOrNull(row[3]),
         pct: intOrNull(row[4]),
+        lote: txt(row[7]),
         codigo_wbs: txt(row[8]),
         descricao: txt(row[9]),
         k_reais_bid: numOrNull(row[10]),

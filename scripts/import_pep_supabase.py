@@ -148,6 +148,7 @@ def import_pep(wb, versao: str, client) -> int:
             "prod":              prod,
             "subp":              subp,
             "pct":               pct,
+            "lote":              lote,
             "codigo_wbs":        wbs,
             "descricao":         desc,
             "k_reais_bid":       k_bid,
