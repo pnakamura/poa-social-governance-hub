@@ -192,6 +192,32 @@ export default function PEPDetalhePage() {
     await updatePepRisco.mutateAsync({ id: risco.id, pep_entry_id: entry.id, status: newStatus })
   }, [entry, updatePepRisco])
 
+  const handleStartEditRisco = useCallback((risco: PepRisco) => {
+    setEditingRiscoId(risco.id)
+    setEditRiscoForm({
+      titulo_risco: risco.titulo_risco,
+      probabilidade: risco.probabilidade,
+      impacto: risco.impacto,
+      mitigacao: risco.mitigacao ?? '',
+      status: risco.status,
+    })
+  }, [])
+
+  const handleSaveEditRisco = useCallback(async () => {
+    if (!entry || !editingRiscoId || !editRiscoForm.titulo_risco.trim()) return
+    await updatePepRisco.mutateAsync({
+      id: editingRiscoId,
+      pep_entry_id: entry.id,
+      titulo_risco: editRiscoForm.titulo_risco,
+      probabilidade: editRiscoForm.probabilidade,
+      impacto: editRiscoForm.impacto,
+      mitigacao: editRiscoForm.mitigacao || null,
+      status: editRiscoForm.status,
+    } as any)
+    setEditingRiscoId(null)
+    toast.success('Risco atualizado')
+  }, [entry, editingRiscoId, editRiscoForm, updatePepRisco])
+
   // Query riscos globais para vincular
   const { data: riscosGlobais = [] } = useQuery({
     queryKey: ['riscos_globais_search', riscoGlobalSearch],
