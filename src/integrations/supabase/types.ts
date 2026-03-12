@@ -107,11 +107,80 @@ export type Database = {
         }
         Relationships: []
       }
+      atividade_alertas: {
+        Row: {
+          atividade_id: string
+          criado_em: string | null
+          id: string
+          mensagem: string
+          resolvido: boolean | null
+          tipo: string
+        }
+        Insert: {
+          atividade_id: string
+          criado_em?: string | null
+          id?: string
+          mensagem: string
+          resolvido?: boolean | null
+          tipo?: string
+        }
+        Update: {
+          atividade_id?: string
+          criado_em?: string | null
+          id?: string
+          mensagem?: string
+          resolvido?: boolean | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atividade_alertas_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "atividades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atividade_comentarios: {
+        Row: {
+          atividade_id: string
+          autor: string | null
+          criado_em: string | null
+          id: string
+          texto: string
+        }
+        Insert: {
+          atividade_id: string
+          autor?: string | null
+          criado_em?: string | null
+          id?: string
+          texto: string
+        }
+        Update: {
+          atividade_id?: string
+          autor?: string | null
+          criado_em?: string | null
+          id?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atividade_comentarios_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "atividades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atividades: {
         Row: {
           atualizado_em: string | null
           componente: string | null
+          cor: string | null
           criado_em: string | null
+          descricao: string | null
           id: string
           prazo: string | null
           prioridade: string | null
@@ -123,7 +192,9 @@ export type Database = {
         Insert: {
           atualizado_em?: string | null
           componente?: string | null
+          cor?: string | null
           criado_em?: string | null
+          descricao?: string | null
           id?: string
           prazo?: string | null
           prioridade?: string | null
@@ -135,7 +206,9 @@ export type Database = {
         Update: {
           atualizado_em?: string | null
           componente?: string | null
+          cor?: string | null
           criado_em?: string | null
+          descricao?: string | null
           id?: string
           prazo?: string | null
           prioridade?: string | null
