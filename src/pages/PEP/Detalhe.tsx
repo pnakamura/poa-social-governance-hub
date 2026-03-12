@@ -93,6 +93,10 @@ export default function PEPDetalhePage() {
   const addPepRisco = useAddPepRisco()
   const updatePepRisco = useUpdatePepRisco()
   const deletePepRisco = useDeletePepRisco()
+  const { data: pepSei = [] } = usePepSei(entry?.id)
+  const addPepSei = useAddPepSei()
+  const deletePepSei = useDeletePepSei()
+  const deletePepRisco = useDeletePepRisco()
 
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({
