@@ -117,29 +117,16 @@ async function fetchStructuredContext(
   return context;
 }
 
-// ── Embedding generation via Lovable AI Gateway ─────────────────────────────
+// ── Embedding generation via Supabase built-in gte-small ────────────────────
 
-async function generateEmbedding(text: string, apiKey: string): Promise<number[] | null> {
+async function generateEmbedding(text: string): Promise<number[] | null> {
   try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "text-embedding-3-small",
-        input: text.slice(0, 8000),
-      }),
+    const model = new Supabase.ai.Session("gte-small");
+    const output = await model.run(text, {
+      mean_pool: true,
+      normalize: true,
     });
-
-    if (!res.ok) {
-      console.error("Embedding error:", res.status, await res.text());
-      return null;
-    }
-
-    const data = await res.json();
-    return data.data?.[0]?.embedding ?? null;
+    return Array.from(output as Float32Array);
   } catch (e) {
     console.error("Embedding generation failed:", e);
     return null;
