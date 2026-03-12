@@ -261,3 +261,53 @@ export const useDeletePepRisco = () => {
     onSuccess: (eid) => qc.invalidateQueries({ queryKey: ['pep_riscos', eid] }),
   })
 }
+
+// ─── SEI (Processos) ──────────────────────────────────────────────────────────
+export interface PepSei {
+  id: string
+  pep_entry_id: string
+  numero_processo: string
+  url: string | null
+  descricao: string | null
+  created_at: string
+}
+
+export const usePepSei = (entryId: string | undefined) =>
+  useQuery<PepSei[]>({
+    queryKey: ['pep_sei', entryId],
+    queryFn: async () => {
+      if (!entryId) return []
+      const { data, error } = await supabase
+        .from('pep_sei')
+        .select('*')
+        .eq('pep_entry_id', entryId)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!entryId,
+  })
+
+export const useAddPepSei = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: { pep_entry_id: string; numero_processo: string; url?: string; descricao?: string }) => {
+      const { error } = await supabase.from('pep_sei').insert(payload)
+      if (error) throw error
+      return payload.pep_entry_id
+    },
+    onSuccess: (eid) => qc.invalidateQueries({ queryKey: ['pep_sei', eid] }),
+  })
+}
+
+export const useDeletePepSei = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, pep_entry_id }: { id: string; pep_entry_id: string }) => {
+      const { error } = await supabase.from('pep_sei').delete().eq('id', id)
+      if (error) throw error
+      return pep_entry_id
+    },
+    onSuccess: (eid) => qc.invalidateQueries({ queryKey: ['pep_sei', eid] }),
+  })
+}
