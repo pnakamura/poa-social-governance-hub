@@ -172,6 +172,9 @@ function RiscoTab({ tipo }: { tipo: 'Estratégico' | 'Tático' }) {
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <RiscoNivelBadge nivel={risco.nivel} />
                         <Badge variant="outline" className="text-xs">{risco.categoria}</Badge>
+                        {risco.componente && risco.componente !== 'Geral' && (
+                          <Badge variant="secondary" className="text-xs">{risco.componente}</Badge>
+                        )}
                         {risco.responsavel && (
                           <span className="text-xs text-muted-foreground">{risco.responsavel}</span>
                         )}
