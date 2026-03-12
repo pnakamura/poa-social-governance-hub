@@ -301,6 +301,12 @@ export default function Activities() {
                                 <span className="text-[10px]">{commentCount}</span>
                               </button>
                             )}
+                            {cl && cl.total > 0 && (
+                              <button onClick={() => setChecklistId(atv.id)} className="flex items-center gap-0.5 text-muted-foreground" title="Checklist">
+                                <ListChecks className="h-3 w-3" />
+                                <span className="text-[10px]">{cl.done}/{cl.total}</span>
+                              </button>
+                            )}
                           </div>
                         </div>
                       </Card>
