@@ -51,8 +51,7 @@ export function MenuVisibilityProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const resetAll = useCallback(() => {
-    const defaults: Record<string, boolean> = {}
-    for (const route of getAllRoutes()) defaults[route] = true
+    const defaults = getDefaultVisibility()
     saveVisibility(defaults)
     setVisibleRoutes(defaults)
   }, [])
