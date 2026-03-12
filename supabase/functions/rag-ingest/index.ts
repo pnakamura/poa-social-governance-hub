@@ -123,18 +123,21 @@ Deno.serve(async (req: Request) => {
 
       // Re-chunk and re-embed
       const chunks = chunkText(content);
-      console.log(`Generating embeddings for ${chunks.length} chunks (update)...`);
-      const embeddings = await generateEmbeddings(chunks);
+      console.log(`Processing ${chunks.length} chunks (update)...`);
 
-      const chunkRows = chunks.map((c, i) => ({
-        document_id: docId,
-        content: c,
-        embedding: JSON.stringify(embeddings[i]),
-        chunk_index: i,
-        metadata: { source_type: source_type ?? "manual" },
-      }));
+      for (let i = 0; i < chunks.length; i++) {
+        console.log(`Embedding chunk ${i + 1}/${chunks.length}...`);
+        const [embedding] = await generateEmbeddings([chunks[i]]);
+        const { error: chunkError } = await supabase.from("rag_chunks").insert({
+          document_id: docId,
+          content: chunks[i],
+          embedding: JSON.stringify(embedding),
+          chunk_index: i,
+          metadata: { source_type: source_type ?? "manual" },
+        });
+        if (chunkError) console.error(`Chunk ${i} insert error:`, chunkError);
+      }
 
-      await supabase.from("rag_chunks").insert(chunkRows);
       await supabase
         .from("rag_documents")
         .update({ chunk_count: chunks.length })
