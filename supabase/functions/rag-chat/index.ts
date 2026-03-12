@@ -117,16 +117,33 @@ async function fetchStructuredContext(
   return context;
 }
 
-// ── Embedding generation via Supabase built-in gte-small ────────────────────
+// ── Embedding via Google text-embedding-004 (768 dimensions) ────────────────
 
 async function generateEmbedding(text: string): Promise<number[] | null> {
   try {
-    const model = new Supabase.ai.Session("gte-small");
-    const output = await model.run(text, {
-      mean_pool: true,
-      normalize: true,
-    });
-    return Array.from(output as Float32Array);
+    const apiKey = Deno.env.get("GOOGLE_API_KEY");
+    if (!apiKey) {
+      console.error("GOOGLE_API_KEY not configured");
+      return null;
+    }
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: { parts: [{ text }] } }),
+      }
+    );
+
+    if (!response.ok) {
+      const err = await response.text();
+      console.error(`Google Embedding API error ${response.status}: ${err}`);
+      return null;
+    }
+
+    const data = await response.json();
+    return data.embedding.values; // 768-dimensional vector
   } catch (e) {
     console.error("Embedding generation failed:", e);
     return null;
