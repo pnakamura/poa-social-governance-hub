@@ -142,6 +142,41 @@ export type Database = {
           },
         ]
       }
+      atividade_checklist: {
+        Row: {
+          atividade_id: string
+          concluido: boolean | null
+          criado_em: string | null
+          id: string
+          ordem: number | null
+          texto: string
+        }
+        Insert: {
+          atividade_id: string
+          concluido?: boolean | null
+          criado_em?: string | null
+          id?: string
+          ordem?: number | null
+          texto: string
+        }
+        Update: {
+          atividade_id?: string
+          concluido?: boolean | null
+          criado_em?: string | null
+          id?: string
+          ordem?: number | null
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atividade_checklist_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "atividades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atividade_comentarios: {
         Row: {
           atividade_id: string

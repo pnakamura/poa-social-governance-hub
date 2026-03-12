@@ -1,5 +1,5 @@
 import { useState, useRef, type DragEvent } from 'react'
-import { Plus, MoreHorizontal, Pencil, Bell, MessageSquare, Trash2, Calendar, User, GripVertical, AlertTriangle } from 'lucide-react'
+import { Plus, MoreHorizontal, Pencil, Bell, MessageSquare, Trash2, Calendar, User, GripVertical, AlertTriangle, ListChecks, X } from 'lucide-react'
 import { HelpTooltip } from '@/components/HelpTooltip'
 import {
   useAtividades, useUpdateAtividadeStatus, useUpdateAtividade,
@@ -7,6 +7,7 @@ import {
   useComentarios, useCreateComentario,
   useAlertas, useCreateAlerta, useToggleAlertaResolvido,
   useAtividadeCounts,
+  useChecklist, useCreateChecklistItem, useToggleChecklistItem, useDeleteChecklistItem,
 } from '@/lib/queries/activities'
 import { type Atividade, type AtividadeAlerta } from '@/lib/supabase'
 import { Card } from '@/components/ui/card'
@@ -72,6 +73,7 @@ export default function Activities() {
   // Sheets state
   const [commentId, setCommentId] = useState<string | null>(null)
   const [alertId, setAlertId] = useState<string | null>(null)
+  const [checklistId, setChecklistId] = useState<string | null>(null)
 
   // DnD state
   const [dragId, setDragId] = useState<string | null>(null)
@@ -213,6 +215,7 @@ export default function Activities() {
                     const atrasado = atv.prazo && atv.prazo < hoje && atv.status !== 'done'
                     const alertCount = counts?.alertMap[atv.id] || 0
                     const commentCount = counts?.commentMap[atv.id] || 0
+                    const cl = counts?.checklistMap?.[atv.id]
                     return (
                       <Card
                         key={atv.id}
@@ -224,7 +227,7 @@ export default function Activities() {
                           dragId === atv.id && 'opacity-40 scale-95',
                           atrasado && 'border-destructive/50 bg-destructive/5',
                         )}
-                        style={atv.cor ? { borderLeftWidth: 4, borderLeftColor: atv.cor } : undefined}
+                        style={atv.cor ? { borderLeft: `4px solid ${atv.cor}` } : undefined}
                       >
                         <div className="flex items-start justify-between gap-1 mb-2">
                           <div className="flex items-center gap-1.5 min-w-0">
@@ -247,6 +250,9 @@ export default function Activities() {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => setCommentId(atv.id)}>
                                   <MessageSquare className="h-3.5 w-3.5 mr-2" /> Comentários
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setChecklistId(atv.id)}>
+                                  <ListChecks className="h-3.5 w-3.5 mr-2" /> Checklist
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => setAlertId(atv.id)}>
                                   <Bell className="h-3.5 w-3.5 mr-2" /> Alertas
@@ -293,6 +299,12 @@ export default function Activities() {
                               <button onClick={() => setCommentId(atv.id)} className="flex items-center gap-0.5 text-muted-foreground" title="Comentários">
                                 <MessageSquare className="h-3 w-3" />
                                 <span className="text-[10px]">{commentCount}</span>
+                              </button>
+                            )}
+                            {cl && cl.total > 0 && (
+                              <button onClick={() => setChecklistId(atv.id)} className="flex items-center gap-0.5 text-muted-foreground" title="Checklist">
+                                <ListChecks className="h-3 w-3" />
+                                <span className="text-[10px]">{cl.done}/{cl.total}</span>
                               </button>
                             )}
                           </div>
@@ -407,6 +419,9 @@ export default function Activities() {
 
       {/* ─── Alerts Sheet ─── */}
       <AlertsSheet atividadeId={alertId} onClose={() => setAlertId(null)} />
+
+      {/* ─── Checklist Sheet ─── */}
+      <ChecklistSheet atividadeId={checklistId} onClose={() => setChecklistId(null)} />
     </div>
   )
 }
@@ -525,6 +540,90 @@ function AlertsSheet({ atividadeId, onClose }: { atividadeId: string | null; onC
           <Button onClick={handleAdd} disabled={createAlerta.isPending || !mensagem.trim()} className="w-full">
             <AlertTriangle className="h-4 w-4 mr-2" /> Adicionar Alerta
           </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Checklist Sheet
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ChecklistSheet({ atividadeId, onClose }: { atividadeId: string | null; onClose: () => void }) {
+  const { data: items = [], isLoading } = useChecklist(atividadeId)
+  const createItem = useCreateChecklistItem()
+  const toggleItem = useToggleChecklistItem()
+  const deleteItem = useDeleteChecklistItem()
+  const [texto, setTexto] = useState('')
+
+  const handleAdd = async () => {
+    if (!texto.trim() || !atividadeId) return
+    const maxOrdem = items.length > 0 ? Math.max(...items.map(i => i.ordem)) + 1 : 0
+    await createItem.mutateAsync({ atividade_id: atividadeId, texto: texto.trim(), concluido: false, ordem: maxOrdem })
+    setTexto('')
+    toast.success('Item adicionado')
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAdd() }
+  }
+
+  const done = items.filter(i => i.concluido).length
+  const total = items.length
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0
+
+  return (
+    <Sheet open={!!atividadeId} onOpenChange={o => !o && onClose()}>
+      <SheetContent className="sm:max-w-md flex flex-col">
+        <SheetHeader>
+          <SheetTitle className="flex items-center gap-2">
+            <ListChecks className="h-5 w-5" /> Checklist
+          </SheetTitle>
+        </SheetHeader>
+
+        {total > 0 && (
+          <div className="space-y-1 pb-2">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{done} de {total} concluídos</span>
+              <span>{pct}%</span>
+            </div>
+            <Progress value={pct} className="h-2" />
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto space-y-1 py-2">
+          {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
+          {items.length === 0 && !isLoading && <p className="text-sm text-muted-foreground text-center py-8">Nenhum item no checklist</p>}
+          {items.map(item => (
+            <div key={item.id} className="flex items-center gap-2 group rounded-md px-2 py-1.5 hover:bg-muted/50">
+              <Checkbox
+                checked={item.concluido}
+                onCheckedChange={v => toggleItem.mutate({ id: item.id, concluido: !!v, atividade_id: item.atividade_id })}
+              />
+              <span className={cn('text-sm flex-1', item.concluido && 'line-through text-muted-foreground')}>{item.texto}</span>
+              <button
+                onClick={() => deleteItem.mutate({ id: item.id, atividade_id: item.atividade_id })}
+                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                title="Remover item"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-t pt-3">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Novo item..."
+              value={texto}
+              onChange={e => setTexto(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="flex-1"
+            />
+            <Button onClick={handleAdd} disabled={createItem.isPending || !texto.trim()}>Adicionar</Button>
+          </div>
         </div>
       </SheetContent>
     </Sheet>

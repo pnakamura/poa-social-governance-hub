@@ -135,6 +135,15 @@ export type AtividadeAlerta = {
   criado_em: string
 }
 
+export type AtividadeChecklist = {
+  id: string
+  atividade_id: string
+  texto: string
+  concluido: boolean
+  ordem: number
+  criado_em: string
+}
+
 export type NotaCritica = {
   id: string
   componente: string | null

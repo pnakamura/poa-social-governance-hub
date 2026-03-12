@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase, type Atividade, type AtividadeComentario, type AtividadeAlerta } from '../supabase'
+import { supabase, type Atividade, type AtividadeComentario, type AtividadeAlerta, type AtividadeChecklist } from '../supabase'
 
 // ─── Atividades ─────────────────────────────────────────────────────────────
 
@@ -170,9 +170,10 @@ export const useAtividadeCounts = () =>
   useQuery({
     queryKey: ['atividade_counts'],
     queryFn: async () => {
-      const [comentarios, alertas] = await Promise.all([
+      const [comentarios, alertas, checklist] = await Promise.all([
         supabase.from('atividade_comentarios').select('atividade_id'),
         supabase.from('atividade_alertas').select('atividade_id,resolvido'),
+        supabase.from('atividade_checklist').select('atividade_id,concluido'),
       ])
       const commentMap: Record<string, number> = {}
       for (const c of comentarios.data ?? []) {
@@ -184,6 +185,74 @@ export const useAtividadeCounts = () =>
           alertMap[a.atividade_id] = (alertMap[a.atividade_id] || 0) + 1
         }
       }
-      return { commentMap, alertMap }
+      const checklistMap: Record<string, { total: number; done: number }> = {}
+      for (const c of checklist.data ?? []) {
+        if (!checklistMap[c.atividade_id]) checklistMap[c.atividade_id] = { total: 0, done: 0 }
+        checklistMap[c.atividade_id].total++
+        if (c.concluido) checklistMap[c.atividade_id].done++
+      }
+      return { commentMap, alertMap, checklistMap }
     },
   })
+
+// ─── Checklist ──────────────────────────────────────────────────────────────
+
+export const useChecklist = (atividadeId: string | null) =>
+  useQuery<AtividadeChecklist[]>({
+    queryKey: ['atividade_checklist', atividadeId],
+    enabled: !!atividadeId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('atividade_checklist')
+        .select('*')
+        .eq('atividade_id', atividadeId!)
+        .order('ordem', { ascending: true })
+        .order('criado_em', { ascending: true })
+      if (error) throw error
+      return data ?? []
+    },
+  })
+
+export const useCreateChecklistItem = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (item: Omit<AtividadeChecklist, 'id' | 'criado_em'>) => {
+      const { error } = await supabase.from('atividade_checklist').insert(item)
+      if (error) throw error
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['atividade_checklist', vars.atividade_id] })
+      qc.invalidateQueries({ queryKey: ['atividade_counts'] })
+    },
+  })
+}
+
+export const useToggleChecklistItem = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, concluido, atividade_id }: { id: string; concluido: boolean; atividade_id: string }) => {
+      const { error } = await supabase.from('atividade_checklist').update({ concluido }).eq('id', id)
+      if (error) throw error
+      return atividade_id
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['atividade_checklist', vars.atividade_id] })
+      qc.invalidateQueries({ queryKey: ['atividade_counts'] })
+    },
+  })
+}
+
+export const useDeleteChecklistItem = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, atividade_id }: { id: string; atividade_id: string }) => {
+      const { error } = await supabase.from('atividade_checklist').delete().eq('id', id)
+      if (error) throw error
+      return atividade_id
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['atividade_checklist', vars.atividade_id] })
+      qc.invalidateQueries({ queryKey: ['atividade_counts'] })
+    },
+  })
+}
