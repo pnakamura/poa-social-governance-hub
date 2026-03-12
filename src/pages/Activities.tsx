@@ -215,6 +215,7 @@ export default function Activities() {
                     const atrasado = atv.prazo && atv.prazo < hoje && atv.status !== 'done'
                     const alertCount = counts?.alertMap[atv.id] || 0
                     const commentCount = counts?.commentMap[atv.id] || 0
+                    const cl = counts?.checklistMap?.[atv.id]
                     return (
                       <Card
                         key={atv.id}
