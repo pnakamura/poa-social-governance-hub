@@ -117,29 +117,16 @@ async function fetchStructuredContext(
   return context;
 }
 
-// ── Embedding generation via Lovable AI Gateway ─────────────────────────────
+// ── Embedding generation via Supabase built-in gte-small ────────────────────
 
-async function generateEmbedding(text: string, apiKey: string): Promise<number[] | null> {
+async function generateEmbedding(text: string): Promise<number[] | null> {
   try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "text-embedding-3-small",
-        input: text.slice(0, 8000),
-      }),
+    const model = new Supabase.ai.Session("gte-small");
+    const output = await model.run(text, {
+      mean_pool: true,
+      normalize: true,
     });
-
-    if (!res.ok) {
-      console.error("Embedding error:", res.status, await res.text());
-      return null;
-    }
-
-    const data = await res.json();
-    return data.data?.[0]?.embedding ?? null;
+    return Array.from(output as Float32Array);
   } catch (e) {
     console.error("Embedding generation failed:", e);
     return null;
@@ -304,7 +291,6 @@ Deno.serve(async (req: Request) => {
     }
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -339,13 +325,11 @@ Deno.serve(async (req: Request) => {
     let ragChunks: any[] = [];
     let ragSources: any[] = [];
 
-    if (LOVABLE_API_KEY) {
-      const embedding = await generateEmbedding(message, LOVABLE_API_KEY);
-      if (embedding) {
-        const result = await semanticSearch(supabase, embedding);
-        ragChunks = result.chunks;
-        ragSources = result.sources;
-      }
+    const embedding = await generateEmbedding(message);
+    if (embedding) {
+      const result = await semanticSearch(supabase, embedding);
+      ragChunks = result.chunks;
+      ragSources = result.sources;
     }
 
     // 3. Detect intent and fetch structured data

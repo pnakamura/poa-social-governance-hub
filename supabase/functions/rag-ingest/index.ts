@@ -19,7 +19,6 @@ function chunkText(
   while (start < text.length) {
     let end = start + chunkSize;
 
-    // Try to break at a sentence boundary
     if (end < text.length) {
       const lastPeriod = text.lastIndexOf(".", end);
       const lastNewline = text.lastIndexOf("\n", end);
@@ -41,41 +40,19 @@ function chunkText(
   return chunks;
 }
 
-// ── Embedding generation via Lovable AI Gateway ─────────────────────────────
+// ── Embedding generation via Supabase built-in gte-small ────────────────────
 
-async function generateEmbeddings(
-  texts: string[],
-  apiKey: string,
-): Promise<number[][]> {
-  const batchSize = 20;
+async function generateEmbeddings(texts: string[]): Promise<number[][]> {
+  const model = new Supabase.ai.Session("gte-small");
   const allEmbeddings: number[][] = [];
 
-  for (let i = 0; i < texts.length; i += batchSize) {
-    const batch = texts.slice(i, i + batchSize).map((t) => t.slice(0, 8000));
-
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "text-embedding-3-small",
-        input: batch,
-      }),
+  for (const text of texts) {
+    const output = await model.run(text, {
+      mean_pool: true,
+      normalize: true,
     });
-
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`Embedding API error ${res.status}: ${err}`);
-    }
-
-    const data = await res.json();
-    const embeddings = data.data
-      .sort((a: any, b: any) => a.index - b.index)
-      .map((d: any) => d.embedding);
-
-    allEmbeddings.push(...embeddings);
+    // output is a Float32Array or similar typed array — convert to number[]
+    allEmbeddings.push(Array.from(output as Float32Array));
   }
 
   return allEmbeddings;
@@ -115,16 +92,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    if (!LOVABLE_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "LOVABLE_API_KEY não configurada" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -154,7 +123,8 @@ Deno.serve(async (req: Request) => {
 
       // Re-chunk and re-embed
       const chunks = chunkText(content);
-      const embeddings = await generateEmbeddings(chunks, LOVABLE_API_KEY);
+      console.log(`Generating embeddings for ${chunks.length} chunks (update)...`);
+      const embeddings = await generateEmbeddings(chunks);
 
       const chunkRows = chunks.map((c, i) => ({
         document_id: docId,
@@ -200,8 +170,9 @@ Deno.serve(async (req: Request) => {
     // 3. Chunk text
     const chunks = chunkText(content);
 
-    // 4. Generate embeddings
-    const embeddings = await generateEmbeddings(chunks, LOVABLE_API_KEY);
+    // 4. Generate embeddings using built-in gte-small
+    console.log(`Generating embeddings for ${chunks.length} chunks (new doc)...`);
+    const embeddings = await generateEmbeddings(chunks);
 
     // 5. Insert chunks with embeddings
     const chunkRows = chunks.map((c, i) => ({
@@ -226,6 +197,8 @@ Deno.serve(async (req: Request) => {
       .from("rag_documents")
       .update({ chunk_count: chunks.length })
       .eq("id", doc.id);
+
+    console.log(`Successfully ingested doc ${doc.id} with ${chunks.length} chunks`);
 
     return new Response(
       JSON.stringify({
