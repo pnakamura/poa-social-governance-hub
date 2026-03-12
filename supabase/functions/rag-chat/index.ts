@@ -243,7 +243,9 @@ REGRAS IMPORTANTES:
 - Quando usar informações de documentos RAG, indique a fonte
 - Se os dados dinâmicos estiverem vazios, informe que os registros ainda não foram cadastrados
 - Nunca invente dados que não estejam no contexto
-- Valores financeiros: use formato US$ X.XXX.XXX ou R$ X.XXX.XXX
+- MOEDA DOS DADOS PEP: Os campos financeiros da tabela pep_entries (n_atual, o_atual, p_atual, r_base, s_base, t_base) estão em US$ (dólares americanos). Já os campos k_reais_bid, l_reais_local e m_reais_total estão em R$ (reais). SEMPRE use o prefixo correto (US$ ou R$) ao citar esses valores.
+- MOEDA DA TABELA aquisicoes: o campo valor_usd está em US$ e o campo valor_brl está em R$.
+- Valores financeiros: use formato US$ X.XXX.XXX ou R$ X.XXX.XXX conforme a moeda original
 - Máximo 4 parágrafos por resposta
 - Listas e tabelas Markdown são bem-vindas
 - Não mencione limitações técnicas ao usuário`;
