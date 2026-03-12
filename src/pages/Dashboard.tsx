@@ -16,6 +16,7 @@ import { useAquisicoes } from '@/hooks/useAquisicoes'
 import { usePontosAtencao } from '@/hooks/usePontosAtencao'
 import { useProximosMarcos } from '@/lib/queries/marcos'
 import { useProgramaContextoKPIs } from '@/lib/queries/contexto'
+import { useImpedimentosAbertos } from '@/lib/queries/pep-gestao'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend, PieChart, Pie, Cell, LabelList,
