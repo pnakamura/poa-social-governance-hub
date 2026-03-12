@@ -326,13 +326,11 @@ Deno.serve(async (req: Request) => {
     let ragChunks: any[] = [];
     let ragSources: any[] = [];
 
-    if (LOVABLE_API_KEY) {
-      const embedding = await generateEmbedding(message, LOVABLE_API_KEY);
-      if (embedding) {
-        const result = await semanticSearch(supabase, embedding);
-        ragChunks = result.chunks;
-        ragSources = result.sources;
-      }
+    const embedding = await generateEmbedding(message);
+    if (embedding) {
+      const result = await semanticSearch(supabase, embedding);
+      ragChunks = result.chunks;
+      ragSources = result.sources;
     }
 
     // 3. Detect intent and fetch structured data
