@@ -25,6 +25,7 @@ import {
   usePepHistorico,
   usePepEvidencias, useUploadEvidencia, useDeleteEvidencia, getEvidenciaUrl,
   usePepRiscos, useAddPepRisco, useUpdatePepRisco, useDeletePepRisco,
+  usePepSei, useAddPepSei, useDeletePepSei,
   type PepRisco,
 } from '@/lib/queries/pep-gestao'
 
