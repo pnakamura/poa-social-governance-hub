@@ -169,7 +169,7 @@ async function semanticSearch(
   const { data: docs } = await supabase
     .from("rag_documents")
     .select("id, title, source_type, source_url")
-    .in("id", docIds);
+    .in("id", docIds) as { data: any[] | null };
 
   const docMap = new Map((docs ?? []).map((d: any) => [d.id, d]));
 
