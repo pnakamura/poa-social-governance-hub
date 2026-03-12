@@ -170,32 +170,24 @@ Deno.serve(async (req: Request) => {
       throw new Error(`Failed to create document: ${docError?.message}`);
     }
 
-    // 3. Chunk text
+    // 3. Chunk text and embed one-at-a-time
     const chunks = chunkText(content);
+    console.log(`Processing ${chunks.length} chunks (new doc)...`);
 
-    // 4. Generate embeddings using built-in gte-small
-    console.log(`Generating embeddings for ${chunks.length} chunks (new doc)...`);
-    const embeddings = await generateEmbeddings(chunks);
-
-    // 5. Insert chunks with embeddings
-    const chunkRows = chunks.map((c, i) => ({
-      document_id: doc.id,
-      content: c,
-      embedding: JSON.stringify(embeddings[i]),
-      chunk_index: i,
-      metadata: { source_type: source_type ?? "manual" },
-    }));
-
-    // Insert in batches of 50
-    for (let i = 0; i < chunkRows.length; i += 50) {
-      const batch = chunkRows.slice(i, i + 50);
-      const { error: chunkError } = await supabase.from("rag_chunks").insert(batch);
-      if (chunkError) {
-        console.error("Chunk insert error:", chunkError);
-      }
+    for (let i = 0; i < chunks.length; i++) {
+      console.log(`Embedding chunk ${i + 1}/${chunks.length}...`);
+      const [embedding] = await generateEmbeddings([chunks[i]]);
+      const { error: chunkError } = await supabase.from("rag_chunks").insert({
+        document_id: doc.id,
+        content: chunks[i],
+        embedding: JSON.stringify(embedding),
+        chunk_index: i,
+        metadata: { source_type: source_type ?? "manual" },
+      });
+      if (chunkError) console.error(`Chunk ${i} insert error:`, chunkError);
     }
 
-    // 6. Update chunk count
+    // 4. Update chunk count
     await supabase
       .from("rag_documents")
       .update({ chunk_count: chunks.length })
