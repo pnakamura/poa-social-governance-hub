@@ -8,6 +8,15 @@ function getAllRoutes(): string[] {
   return NAV_GROUPS.flatMap(g => g.items.map(i => i.to))
 }
 
+/** Default: only protected routes (Dashboard, Configurações) are visible */
+function getDefaultVisibility(): Record<string, boolean> {
+  const defaults: Record<string, boolean> = {}
+  for (const route of getAllRoutes()) {
+    defaults[route] = PROTECTED_ROUTES.includes(route)
+  }
+  return defaults
+}
+
 function loadVisibility(): Record<string, boolean> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
