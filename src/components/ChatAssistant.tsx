@@ -171,7 +171,7 @@ export function ChatAssistant() {
         </div>
 
         {/* Messages */}
-        <ScrollArea className="flex-1 px-3 py-3">
+        <ScrollArea className="flex-1 min-h-0 overflow-hidden px-3 py-3">
           <div className="flex flex-col gap-3">
             {messages.map(msg => (
               <div
