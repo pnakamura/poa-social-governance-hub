@@ -226,7 +226,7 @@ export default function Activities() {
                           dragId === atv.id && 'opacity-40 scale-95',
                           atrasado && 'border-destructive/50 bg-destructive/5',
                         )}
-                        style={atv.cor ? { borderLeftWidth: 4, borderLeftColor: atv.cor } : undefined}
+                        style={atv.cor ? { borderLeft: `4px solid ${atv.cor}` } : undefined}
                       >
                         <div className="flex items-start justify-between gap-1 mb-2">
                           <div className="flex items-center gap-1.5 min-w-0">
