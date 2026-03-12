@@ -5,7 +5,7 @@ import {
   AlertTriangle, ListChecks, MessageSquareWarning,
   FileText, Settings, ChevronLeft, ChevronRight, TrendingUp,
   CheckSquare, Calendar, AlertOctagon, ShoppingCart, Tag, Brain, Radar,
-  ShieldCheck, LineChart,
+  ShieldCheck, LineChart, BookOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SyncStatusBadge } from '@/components/SyncStatusBadge'
@@ -52,6 +52,7 @@ const NAV_GROUPS = [
     label: 'Saída',
     items: [
       { to: '/relatorios', icon: FileText, label: 'Relatórios' },
+      { to: '/conhecimento', icon: BookOpen, label: 'Base de Conhecimento' },
       { to: '/configuracoes', icon: Settings, label: 'Configurações' },
     ],
   },
