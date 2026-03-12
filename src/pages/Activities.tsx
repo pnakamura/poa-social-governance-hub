@@ -251,6 +251,9 @@ export default function Activities() {
                                 <DropdownMenuItem onClick={() => setCommentId(atv.id)}>
                                   <MessageSquare className="h-3.5 w-3.5 mr-2" /> Comentários
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setChecklistId(atv.id)}>
+                                  <ListChecks className="h-3.5 w-3.5 mr-2" /> Checklist
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => setAlertId(atv.id)}>
                                   <Bell className="h-3.5 w-3.5 mr-2" /> Alertas
                                 </DropdownMenuItem>
