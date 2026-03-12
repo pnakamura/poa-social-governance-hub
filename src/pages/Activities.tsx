@@ -1,5 +1,5 @@
 import { useState, useRef, type DragEvent } from 'react'
-import { Plus, MoreHorizontal, Pencil, Bell, MessageSquare, Trash2, Calendar, User, GripVertical, AlertTriangle } from 'lucide-react'
+import { Plus, MoreHorizontal, Pencil, Bell, MessageSquare, Trash2, Calendar, User, GripVertical, AlertTriangle, ListChecks, X } from 'lucide-react'
 import { HelpTooltip } from '@/components/HelpTooltip'
 import {
   useAtividades, useUpdateAtividadeStatus, useUpdateAtividade,
@@ -7,6 +7,7 @@ import {
   useComentarios, useCreateComentario,
   useAlertas, useCreateAlerta, useToggleAlertaResolvido,
   useAtividadeCounts,
+  useChecklist, useCreateChecklistItem, useToggleChecklistItem, useDeleteChecklistItem,
 } from '@/lib/queries/activities'
 import { type Atividade, type AtividadeAlerta } from '@/lib/supabase'
 import { Card } from '@/components/ui/card'
