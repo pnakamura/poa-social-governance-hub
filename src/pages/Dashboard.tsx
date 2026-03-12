@@ -1,4 +1,4 @@
-import { DollarSign, BarChart2, AlertTriangle, CheckSquare, Clock, Calendar, MapPin, ShieldCheck } from 'lucide-react'
+import { DollarSign, BarChart2, AlertTriangle, CheckSquare, Clock, Calendar, MapPin, ShieldCheck, Ban, ExternalLink } from 'lucide-react'
 import { HelpTooltip } from '@/components/HelpTooltip'
 import { Link } from 'react-router-dom'
 import { useSyncLog } from '@/hooks/useSyncLog'

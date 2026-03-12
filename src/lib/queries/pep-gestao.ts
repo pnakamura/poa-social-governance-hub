@@ -262,6 +262,38 @@ export const useDeletePepRisco = () => {
   })
 }
 
+// ─── Impedimentos Abertos (Dashboard) ─────────────────────────────────────────
+export interface ImpedimentoAberto {
+  id: string
+  descricao: string
+  created_at: string
+  pep_entry_id: string
+  codigo_wbs: string | null
+  pep_descricao: string | null
+}
+
+export const useImpedimentosAbertos = () =>
+  useQuery<ImpedimentoAberto[]>({
+    queryKey: ['pep_impedimentos_abertos'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pep_impedimentos')
+        .select('id, descricao, created_at, pep_entry_id, pep_entries!inner(codigo_wbs, descricao)')
+        .eq('resolvido', false)
+        .order('created_at', { ascending: false })
+        .limit(20)
+      if (error) throw error
+      return (data ?? []).map((d: any) => ({
+        id: d.id,
+        descricao: d.descricao,
+        created_at: d.created_at,
+        pep_entry_id: d.pep_entry_id,
+        codigo_wbs: d.pep_entries?.codigo_wbs ?? null,
+        pep_descricao: d.pep_entries?.descricao ?? null,
+      }))
+    },
+  })
+
 // ─── SEI (Processos) ──────────────────────────────────────────────────────────
 export interface PepSei {
   id: string
