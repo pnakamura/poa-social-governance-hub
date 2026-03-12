@@ -283,11 +283,18 @@ export default function Dashboard() {
                   >
                     <div className="w-1.5 h-1.5 rounded-full bg-destructive mt-1.5 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      {imp.codigo_wbs && (
-                        <span className="inline-block text-[10px] font-mono font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded mb-0.5">
-                          {imp.codigo_wbs}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                        {imp.codigo_wbs && (
+                          <span className="inline-block text-[10px] font-mono font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                            {imp.codigo_wbs}
+                          </span>
+                        )}
+                        {imp.pep_descricao && (
+                          <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[180px]">
+                            {imp.pep_descricao}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-foreground line-clamp-2 leading-relaxed">{imp.descricao}</p>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
                         {new Date(imp.created_at).toLocaleDateString('pt-BR')}
