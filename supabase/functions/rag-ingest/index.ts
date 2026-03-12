@@ -10,7 +10,7 @@ const corsHeaders = {
 
 function chunkText(
   text: string,
-  chunkSize = 1000,
+  chunkSize = 2500,
   overlap = 200,
 ): string[] {
   const chunks: string[] = [];
