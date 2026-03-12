@@ -63,6 +63,7 @@ export function ChatAssistant() {
     setLoading(true)
 
     const webhookUrl = import.meta.env.VITE_N8N_CHAT_WEBHOOK_URL
+      || 'https://dvqnlnxkwcrxbctujajl.supabase.co/functions/v1/n8n-chat-webhook'
 
     if (!webhookUrl) {
       setMessages(prev => [...prev, {
