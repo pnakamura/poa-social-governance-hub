@@ -50,6 +50,7 @@ import Aquisicoes from '@/pages/Aquisicoes'
 import Temas from '@/pages/Temas'
 import Monitoramento from '@/pages/Monitoramento'
 import Qualidade from '@/pages/Qualidade'
+import Conhecimento from '@/pages/Conhecimento'
 import PEPAnalisePage from '@/pages/PEP/Analise'
 import PEPDetalhePage from '@/pages/PEP/Detalhe'
 
