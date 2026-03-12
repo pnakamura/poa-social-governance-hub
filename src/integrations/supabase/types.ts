@@ -725,6 +725,41 @@ export type Database = {
           },
         ]
       }
+      pep_sei: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          numero_processo: string
+          pep_entry_id: string
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          numero_processo: string
+          pep_entry_id: string
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          numero_processo?: string
+          pep_entry_id?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pep_sei_pep_entry_id_fkey"
+            columns: ["pep_entry_id"]
+            isOneToOne: false
+            referencedRelation: "pep_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pmr_outcomes: {
         Row: {
           codigo: string | null
