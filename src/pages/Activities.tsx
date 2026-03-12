@@ -73,6 +73,7 @@ export default function Activities() {
   // Sheets state
   const [commentId, setCommentId] = useState<string | null>(null)
   const [alertId, setAlertId] = useState<string | null>(null)
+  const [checklistId, setChecklistId] = useState<string | null>(null)
 
   // DnD state
   const [dragId, setDragId] = useState<string | null>(null)
