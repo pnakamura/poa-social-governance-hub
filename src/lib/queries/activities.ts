@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase, type Atividade, type AtividadeComentario, type AtividadeAlerta } from '../supabase'
+import { supabase, type Atividade, type AtividadeComentario, type AtividadeAlerta, type AtividadeChecklist } from '../supabase'
 
 // ─── Atividades ─────────────────────────────────────────────────────────────
 
