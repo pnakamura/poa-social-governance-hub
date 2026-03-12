@@ -40,24 +40,6 @@ function chunkText(
   return chunks;
 }
 
-// ── Embedding generation via Supabase built-in gte-small ────────────────────
-
-async function generateEmbeddings(texts: string[]): Promise<number[][]> {
-  const model = new Supabase.ai.Session("gte-small");
-  const allEmbeddings: number[][] = [];
-
-  for (const text of texts) {
-    const output = await model.run(text, {
-      mean_pool: true,
-      normalize: true,
-    });
-    // output is a Float32Array or similar typed array — convert to number[]
-    allEmbeddings.push(Array.from(output as Float32Array));
-  }
-
-  return allEmbeddings;
-}
-
 // ── Content hash ────────────────────────────────────────────────────────────
 
 async function hashContent(content: string): Promise<string> {
@@ -105,9 +87,15 @@ Deno.serve(async (req: Request) => {
       .eq("content_hash", contentHash)
       .limit(1);
 
+    let docId: string;
+    let action: string;
+
     if (existing && existing.length > 0) {
-      // Update existing document: delete old chunks and re-ingest
-      await supabase.from("rag_chunks").delete().eq("document_id", existing[0].id);
+      docId = existing[0].id;
+      action = "updated";
+
+      // Delete old chunks and update document metadata
+      await supabase.from("rag_chunks").delete().eq("document_id", docId);
       await supabase
         .from("rag_documents")
         .update({
@@ -117,89 +105,74 @@ Deno.serve(async (req: Request) => {
           metadata: metadata ?? {},
           updated_at: new Date().toISOString(),
         })
-        .eq("id", existing[0].id);
-
-      const docId = existing[0].id;
-
-      // Re-chunk and re-embed
-      const chunks = chunkText(content);
-      console.log(`Processing ${chunks.length} chunks (update)...`);
-
-      for (let i = 0; i < chunks.length; i++) {
-        console.log(`Embedding chunk ${i + 1}/${chunks.length}...`);
-        const [embedding] = await generateEmbeddings([chunks[i]]);
-        const { error: chunkError } = await supabase.from("rag_chunks").insert({
-          document_id: docId,
-          content: chunks[i],
-          embedding: JSON.stringify(embedding),
-          chunk_index: i,
-          metadata: { source_type: source_type ?? "manual" },
-        });
-        if (chunkError) console.error(`Chunk ${i} insert error:`, chunkError);
-      }
-
-      await supabase
-        .from("rag_documents")
-        .update({ chunk_count: chunks.length })
         .eq("id", docId);
+    } else {
+      // Create new document
+      const { data: doc, error: docError } = await supabase
+        .from("rag_documents")
+        .insert({
+          title,
+          source_type: source_type ?? "manual",
+          source_url: source_url ?? null,
+          content_hash: contentHash,
+          metadata: metadata ?? {},
+        })
+        .select("id")
+        .single();
 
-      return new Response(
-        JSON.stringify({
-          document_id: docId,
-          chunks_count: chunks.length,
-          action: "updated",
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      if (docError || !doc) {
+        throw new Error(`Failed to create document: ${docError?.message}`);
+      }
+      docId = doc.id;
+      action = "created";
     }
 
-    // 2. Create new document
-    const { data: doc, error: docError } = await supabase
-      .from("rag_documents")
-      .insert({
-        title,
-        source_type: source_type ?? "manual",
-        source_url: source_url ?? null,
-        content_hash: contentHash,
-        metadata: metadata ?? {},
-      })
-      .select("id")
-      .single();
-
-    if (docError || !doc) {
-      throw new Error(`Failed to create document: ${docError?.message}`);
-    }
-
-    // 3. Chunk text and embed one-at-a-time
+    // 2. Chunk text and store WITHOUT embeddings
     const chunks = chunkText(content);
-    console.log(`Processing ${chunks.length} chunks (new doc)...`);
+    console.log(`Storing ${chunks.length} chunks without embeddings for doc ${docId}...`);
 
-    for (let i = 0; i < chunks.length; i++) {
-      console.log(`Embedding chunk ${i + 1}/${chunks.length}...`);
-      const [embedding] = await generateEmbeddings([chunks[i]]);
-      const { error: chunkError } = await supabase.from("rag_chunks").insert({
-        document_id: doc.id,
-        content: chunks[i],
-        embedding: JSON.stringify(embedding),
-        chunk_index: i,
-        metadata: { source_type: source_type ?? "manual" },
-      });
-      if (chunkError) console.error(`Chunk ${i} insert error:`, chunkError);
+    const chunkRows = chunks.map((c, i) => ({
+      document_id: docId,
+      content: c,
+      chunk_index: i,
+      metadata: { source_type: source_type ?? "manual" },
+      // embedding is NULL — will be filled by rag-embed-batch
+    }));
+
+    // Insert all chunks at once (no embedding = fast)
+    for (let i = 0; i < chunkRows.length; i += 50) {
+      const batch = chunkRows.slice(i, i + 50);
+      const { error: chunkError } = await supabase.from("rag_chunks").insert(batch);
+      if (chunkError) console.error("Chunk insert error:", chunkError);
     }
 
-    // 4. Update chunk count
+    // Update chunk count
     await supabase
       .from("rag_documents")
       .update({ chunk_count: chunks.length })
-      .eq("id", doc.id);
+      .eq("id", docId);
 
-    console.log(`Successfully ingested doc ${doc.id} with ${chunks.length} chunks`);
+    // 3. Trigger embedding processing asynchronously (fire-and-forget)
+    const embedUrl = `${SUPABASE_URL}/functions/v1/rag-embed-batch`;
+    console.log(`Triggering rag-embed-batch for doc ${docId}, offset 0...`);
+
+    fetch(embedUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({ document_id: docId, offset: 0, batch_size: 2 }),
+    }).catch((err) => console.error("Failed to trigger rag-embed-batch:", err));
+
+    console.log(`Document ${docId} ${action} with ${chunks.length} chunks (embeddings queued)`);
 
     return new Response(
       JSON.stringify({
-        document_id: doc.id,
+        document_id: docId,
         chunks_count: chunks.length,
-        action: "created",
+        action,
+        embedding_status: "queued",
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
