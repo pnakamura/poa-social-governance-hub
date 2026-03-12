@@ -157,6 +157,22 @@ export default function PEPDetalhePage() {
     setNewImpedimento('')
   }, [entry, newImpedimento, addImpedimento])
 
+  // ─── SEI (Processos) ──────────────────────────────────────────────
+  const [showSeiForm, setShowSeiForm] = useState(false)
+  const [seiForm, setSeiForm] = useState({ numero_processo: '', url: '', descricao: '' })
+  const handleAddSei = useCallback(async () => {
+    if (!entry || !seiForm.numero_processo.trim()) return
+    await addPepSei.mutateAsync({
+      pep_entry_id: entry.id,
+      numero_processo: seiForm.numero_processo.trim(),
+      url: seiForm.url.trim() || undefined,
+      descricao: seiForm.descricao.trim() || undefined,
+    })
+    setSeiForm({ numero_processo: '', url: '', descricao: '' })
+    setShowSeiForm(false)
+    toast.success('Processo SEI adicionado')
+  }, [entry, seiForm, addPepSei])
+
   // ─── Riscos do Item ──────────────────────────────────────────────
   const [showRiscoForm, setShowRiscoForm] = useState(false)
   const [riscoForm, setRiscoForm] = useState({ titulo_risco: '', probabilidade: 'Média', impacto: 'Médio', mitigacao: '' })
