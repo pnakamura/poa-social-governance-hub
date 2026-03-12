@@ -86,6 +86,7 @@ export default function App() {
               <Route path="temas" element={<Temas />} />
               <Route path="monitoramento" element={<Monitoramento />} />
               <Route path="qualidade-dados" element={<Qualidade />} />
+              <Route path="conhecimento" element={<Conhecimento />} />
               <Route path="pep/analise" element={<PEPAnalisePage />} />
               <Route path="pep/:wbs" element={<PEPDetalhePage />} />
               <Route path="*" element={

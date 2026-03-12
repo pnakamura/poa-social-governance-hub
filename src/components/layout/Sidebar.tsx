@@ -52,6 +52,7 @@ const NAV_GROUPS = [
     label: 'Saída',
     items: [
       { to: '/relatorios', icon: FileText, label: 'Relatórios' },
+      { to: '/conhecimento', icon: BookOpen, label: 'Base de Conhecimento' },
       { to: '/configuracoes', icon: Settings, label: 'Configurações' },
     ],
   },
