@@ -13,9 +13,7 @@ function loadVisibility(): Record<string, boolean> {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) return JSON.parse(raw)
   } catch {}
-  const defaults: Record<string, boolean> = {}
-  for (const route of getAllRoutes()) defaults[route] = true
-  return defaults
+  return getDefaultVisibility()
 }
 
 function saveVisibility(v: Record<string, boolean>) {
