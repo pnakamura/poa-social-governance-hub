@@ -106,9 +106,25 @@ async function fetchStructuredContext(
         if (table === "marcos") query = query.order("data_marco", { ascending: true });
 
         const { data, error } = await query;
-        context[table] = error
-          ? { error: error.message }
-          : { total: data?.length ?? 0, amostra: (data ?? []).slice(0, 15) };
+        if (error) {
+          context[table] = { error: error.message };
+        } else if (table === "pep_entries") {
+          // Hierarchy-aware sampling: send ALL C and P rows, sample PTs
+          const rows = data ?? [];
+          const componentes = rows.filter((r: any) => r.ref === "C");
+          const produtos = rows.filter((r: any) => r.ref === "P");
+          const subprodutos = rows.filter((r: any) => r.ref === "SP");
+          const pts = rows.filter((r: any) => r.ref === "PT");
+          context[table] = {
+            total: rows.length,
+            componentes: { total: componentes.length, dados: componentes },
+            produtos: { total: produtos.length, dados: produtos },
+            subprodutos: { total: subprodutos.length, dados: subprodutos.slice(0, 15) },
+            pacotes_trabalho: { total: pts.length, amostra: pts.slice(0, 20) },
+          };
+        } else {
+          context[table] = { total: data?.length ?? 0, amostra: (data ?? []).slice(0, 15) };
+        }
       } catch (e) {
         context[table] = { error: String(e) };
       }
