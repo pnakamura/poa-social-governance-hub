@@ -146,6 +146,33 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          messages: Json
+          title: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          messages?: Json
+          title?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          messages?: Json
+          title?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       marcos: {
         Row: {
           area: string | null
@@ -883,6 +910,80 @@ export type Database = {
           },
         ]
       }
+      rag_chunks: {
+        Row: {
+          chunk_index: number
+          content: string
+          created_at: string
+          document_id: string
+          embedding: string | null
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          chunk_index?: number
+          content: string
+          created_at?: string
+          document_id: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          created_at?: string
+          document_id?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rag_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "rag_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rag_documents: {
+        Row: {
+          chunk_count: number | null
+          content_hash: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          source_type: string
+          source_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          chunk_count?: number | null
+          content_hash?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          source_type?: string
+          source_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          chunk_count?: number | null
+          content_hash?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          source_type?: string
+          source_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       recomendacoes: {
         Row: {
           componente: string | null
@@ -1386,6 +1487,20 @@ export type Database = {
         Returns: undefined
       }
       is_admin_or_gestor: { Args: { _user_id: string }; Returns: boolean }
+      match_chunks: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          content: string
+          document_id: string
+          id: string
+          metadata: Json
+          similarity: number
+        }[]
+      }
       user_can_access_risk: {
         Args: { _risco_id: string; _user_id: string }
         Returns: boolean
