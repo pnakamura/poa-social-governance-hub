@@ -199,7 +199,7 @@ DADOS FIXOS DO PROGRAMA (sempre disponíveis, use sem restrições)
 - Conversões de Moeda/Taxa: exigem anuência prévia do Fiador (STN)
 
 3. GOVERNANÇA E ESTRUTURA ORGANIZACIONAL
-- Órgão Executor: Município de Porto Alegre, via Secretaria Municipal de Planejamento e Assuntos Estratégicos (SMPE)
+- Órgão Executor: Município de Porto Alegre, via Secretaria Municipal de Planejamento e Assuntos Estratégicos (SMPG)
 - Unidade de Gestão do Projeto (UGP): Coordenação direta, equipe chave inclui:
   Coordenador Geral, Coordenador de TI, Especialista Administrativo-Financeiro,
   Especialista em Aquisições, Especialista em Monitoramento e Avaliação,
