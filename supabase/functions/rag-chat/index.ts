@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// ── Intent detection (reused from original) ─────────────────────────────────
+// ── Intent detection ────────────────────────────────────────────────────────
 
 function detectTables(msg: string): string[] {
   const m = msg.toLowerCase();
@@ -16,7 +16,8 @@ function detectTables(msg: string): string[] {
     m.includes("pep") || m.includes("orçamento") || m.includes("orcamento") ||
     m.includes("wbs") || m.includes("componente") || m.includes("produto") ||
     m.includes("subproduto") || m.includes("plano de trabalho") ||
-    m.includes("execução") || m.includes("execucao")
+    m.includes("execução") || m.includes("execucao") ||
+    m.includes("cockpit") || m.includes("gestão pep") || m.includes("gestao pep")
   ) tables.push("pep_entries");
 
   if (
@@ -59,6 +60,11 @@ function detectTables(msg: string): string[] {
     m.includes("aprovação bid") || m.includes("aprovacao bid")
   ) tables.push("nao_objecoes");
 
+  if (
+    m.includes("impedimento") || m.includes("bloqueio") || m.includes("obstáculo") ||
+    m.includes("obstaculo")
+  ) tables.push("pep_impedimentos");
+
   return [...new Set(tables)];
 }
 
@@ -74,6 +80,9 @@ const TABLE_QUERIES: Record<string, string> = {
   marcos: "*",
   pontos_atencao: "*",
   nao_objecoes: "*",
+  pep_gestao: "id,pep_entry_id,status,progresso,nivel_risco,notas,data_inicio_real,data_fim_previsto",
+  pep_impedimentos: "id,pep_entry_id,descricao,resolvido,created_at",
+  pep_riscos: "id,pep_entry_id,titulo_risco,probabilidade,impacto,status,mitigacao",
 };
 
 const TABLE_LIMITS: Record<string, number> = {
@@ -86,15 +95,26 @@ const TABLE_LIMITS: Record<string, number> = {
   marcos: 20,
   pontos_atencao: 20,
   nao_objecoes: 20,
+  pep_gestao: 60,
+  pep_impedimentos: 40,
+  pep_riscos: 40,
 };
 
 async function fetchStructuredContext(
   supabase: any,
   tables: string[],
 ): Promise<Record<string, unknown>> {
+  // If pep_entries is requested, also include cockpit tables
+  const expandedTables = [...tables];
+  if (tables.includes("pep_entries")) {
+    if (!expandedTables.includes("pep_gestao")) expandedTables.push("pep_gestao");
+    if (!expandedTables.includes("pep_impedimentos")) expandedTables.push("pep_impedimentos");
+    if (!expandedTables.includes("pep_riscos")) expandedTables.push("pep_riscos");
+  }
+
   const context: Record<string, unknown> = {};
   await Promise.all(
-    tables.map(async (table) => {
+    expandedTables.map(async (table) => {
       try {
         let query = supabase
           .from(table)
@@ -104,12 +124,13 @@ async function fetchStructuredContext(
         if (table === "pep_entries") query = query.eq("versao", "v2");
         if (table === "riscos") query = query.order("nivel", { ascending: false });
         if (table === "marcos") query = query.order("data_marco", { ascending: true });
+        if (table === "pep_impedimentos") query = query.order("created_at", { ascending: false });
+        if (table === "pep_riscos") query = query.order("created_at", { ascending: false });
 
         const { data, error } = await query;
         if (error) {
           context[table] = { error: error.message };
         } else if (table === "pep_entries") {
-          // Hierarchy-aware sampling: send ALL C and P rows, sample PTs
           const rows = data ?? [];
           const componentes = rows.filter((r: any) => r.ref === "C");
           const produtos = rows.filter((r: any) => r.ref === "P");
@@ -133,7 +154,124 @@ async function fetchStructuredContext(
   return context;
 }
 
-// ── Embedding via Google text-embedding-004 (768 dimensions) ────────────────
+// ── Text search fallback in PEP ─────────────────────────────────────────────
+
+function extractSearchTerms(msg: string): string[] {
+  // Remove common Portuguese stop words and short words, keep meaningful terms
+  const stopWords = new Set([
+    "o", "a", "os", "as", "um", "uma", "de", "do", "da", "dos", "das",
+    "em", "no", "na", "nos", "nas", "por", "para", "com", "sem", "que",
+    "se", "não", "nao", "é", "e", "ou", "mas", "como", "qual", "quais",
+    "existe", "tem", "sobre", "qual", "me", "fale", "diga", "conte",
+    "informações", "informacoes", "dados", "detalhes", "info",
+  ]);
+  return msg
+    .toLowerCase()
+    .replace(/[?!.,;:()]/g, "")
+    .split(/\s+/)
+    .filter((w) => w.length > 2 && !stopWords.has(w));
+}
+
+async function searchPepByText(
+  supabase: any,
+  message: string,
+): Promise<Record<string, unknown>> {
+  const terms = extractSearchTerms(message);
+  if (terms.length === 0) return {};
+
+  // Build ILIKE filters — search for each term in descricao or resumo_executivo
+  // Use the full phrase first, then individual terms
+  const searchPhrase = terms.join(" ");
+
+  // Try phrase match first
+  let { data: phraseResults } = await supabase
+    .from("pep_entries")
+    .select(TABLE_QUERIES.pep_entries)
+    .eq("versao", "v2")
+    .or(`descricao.ilike.%${searchPhrase}%,resumo_executivo.ilike.%${searchPhrase}%`)
+    .limit(10);
+
+  let results = phraseResults ?? [];
+
+  // If no phrase match, try individual terms
+  if (results.length === 0) {
+    for (const term of terms) {
+      const { data } = await supabase
+        .from("pep_entries")
+        .select(TABLE_QUERIES.pep_entries)
+        .eq("versao", "v2")
+        .or(`descricao.ilike.%${term}%,resumo_executivo.ilike.%${term}%`)
+        .limit(10);
+      if (data?.length) {
+        results = [...results, ...data];
+      }
+    }
+    // Deduplicate by id
+    const seen = new Set();
+    results = results.filter((r: any) => {
+      if (seen.has(r.codigo_wbs)) return false;
+      seen.add(r.codigo_wbs);
+      return true;
+    });
+  }
+
+  if (results.length === 0) return {};
+
+  // Fetch cockpit data for found entries
+  const entryIds = results
+    .map((r: any) => r.codigo_wbs)
+    .filter(Boolean);
+
+  // We need the UUIDs for cockpit queries — fetch them
+  const { data: idRows } = await supabase
+    .from("pep_entries")
+    .select("id,codigo_wbs")
+    .eq("versao", "v2")
+    .in("codigo_wbs", entryIds);
+
+  const uuids = (idRows ?? []).map((r: any) => r.id);
+
+  const context: Record<string, unknown> = {
+    pep_entries_encontrados: {
+      total: results.length,
+      dados: results,
+      nota: "Itens encontrados por busca textual na descrição/resumo executivo",
+    },
+  };
+
+  if (uuids.length > 0) {
+    // Fetch cockpit data for these specific entries
+    const [gestao, impedimentos, riscos] = await Promise.all([
+      supabase
+        .from("pep_gestao")
+        .select(TABLE_QUERIES.pep_gestao)
+        .in("pep_entry_id", uuids),
+      supabase
+        .from("pep_impedimentos")
+        .select(TABLE_QUERIES.pep_impedimentos)
+        .in("pep_entry_id", uuids)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("pep_riscos")
+        .select(TABLE_QUERIES.pep_riscos)
+        .in("pep_entry_id", uuids),
+    ]);
+
+    if (gestao.data?.length) {
+      context.pep_gestao = { total: gestao.data.length, dados: gestao.data };
+    }
+    if (impedimentos.data?.length) {
+      context.pep_impedimentos = { total: impedimentos.data.length, dados: impedimentos.data };
+    }
+    if (riscos.data?.length) {
+      context.pep_riscos = { total: riscos.data.length, dados: riscos.data };
+    }
+  }
+
+  return context;
+}
+
+// ── Embedding via Google gemini-embedding-001 (768 dimensions) ──────────────
 
 async function generateEmbedding(text: string): Promise<number[] | null> {
   try {
@@ -159,7 +297,7 @@ async function generateEmbedding(text: string): Promise<number[] | null> {
     }
 
     const data = await response.json();
-    return data.embedding.values; // 768-dimensional vector
+    return data.embedding.values;
   } catch (e) {
     console.error("Embedding generation failed:", e);
     return null;
@@ -184,7 +322,6 @@ async function semanticSearch(
     return { chunks: [], sources: [] };
   }
 
-  // Fetch document info for sources
   const docIds = [...new Set(data.map((c: any) => c.document_id))];
   const { data: docs } = await supabase
     .from("rag_documents")
@@ -264,7 +401,13 @@ REGRAS IMPORTANTES:
 - Valores financeiros: use formato US$ X.XXX.XXX ou R$ X.XXX.XXX conforme a moeda original
 - Máximo 4 parágrafos por resposta
 - Listas e tabelas Markdown são bem-vindas
-- Não mencione limitações técnicas ao usuário`;
+- Não mencione limitações técnicas ao usuário
+- DADOS DO COCKPIT PEP:
+  - **pep_gestao**: Contém o status operacional (nao_iniciado, em_andamento, concluido, suspenso, cancelado), progresso (%), nível de risco, notas e datas de cada item WBS.
+  - **pep_impedimentos**: Lista de bloqueios/obstáculos de cada item WBS, com descrição e flag resolvido.
+  - **pep_riscos**: Riscos operacionais específicos de cada item WBS, com probabilidade, impacto, status e mitigação.
+  - Quando a pergunta mencionar um item específico (ex: nome de rua, beco, praça, projeto), busque nos dados de pep_entries_encontrados que foram filtrados por busca textual.
+  - Relacione pep_gestao, pep_impedimentos e pep_riscos com pep_entries através do campo pep_entry_id.`;
 }
 
 // ── Claude API call ─────────────────────────────────────────────────────────
@@ -353,7 +496,6 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Add user message to history
     conversationMessages.push({ role: "user", content: message });
 
     // 2. Generate embedding for semantic search
@@ -369,14 +511,23 @@ Deno.serve(async (req: Request) => {
 
     // 3. Detect intent and fetch structured data
     const tables = detectTables(message);
-    const structuredContext = tables.length > 0
-      ? await fetchStructuredContext(supabase, tables)
-      : {};
+    let structuredContext: Record<string, unknown> = {};
+
+    if (tables.length > 0) {
+      // Intent detected — fetch structured data (cockpit tables auto-included for PEP)
+      structuredContext = await fetchStructuredContext(supabase, tables);
+    } else {
+      // No intent detected — fallback: text search in PEP descriptions
+      console.log("No intent detected, trying PEP text search fallback...");
+      structuredContext = await searchPepByText(supabase, message);
+      if (Object.keys(structuredContext).length > 0) {
+        console.log(`PEP text search found results for: "${message}"`);
+      }
+    }
 
     // 4. Build prompt and call Claude
     const systemPrompt = buildSystemPrompt(ragChunks, structuredContext);
 
-    // Only send last 10 messages for context window management
     const recentMessages = conversationMessages.slice(-10);
     const answer = await callClaude(systemPrompt, recentMessages, ANTHROPIC_API_KEY);
 
@@ -400,10 +551,13 @@ Deno.serve(async (req: Request) => {
       convId = newConv?.id;
     }
 
-    // 6. Merge sources from RAG + structured tables
+    // 6. Merge sources
+    const structuredTables = Object.keys(structuredContext).filter(
+      (k) => !k.endsWith("_encontrados"),
+    );
     const allSources = [
       ...ragSources,
-      ...tables.map((t) => ({ title: t, type: "database", url: null })),
+      ...structuredTables.map((t) => ({ title: t, type: "database", url: null })),
     ];
 
     return new Response(
