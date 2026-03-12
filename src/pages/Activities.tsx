@@ -419,6 +419,9 @@ export default function Activities() {
 
       {/* ─── Alerts Sheet ─── */}
       <AlertsSheet atividadeId={alertId} onClose={() => setAlertId(null)} />
+
+      {/* ─── Checklist Sheet ─── */}
+      <ChecklistSheet atividadeId={checklistId} onClose={() => setChecklistId(null)} />
     </div>
   )
 }
