@@ -1,16 +1,19 @@
 import { useState } from 'react'
-import { Upload, Database, RefreshCw, Settings as SettingsIcon } from 'lucide-react'
+import { Upload, Database, RefreshCw, Settings as SettingsIcon, Eye, RotateCcw } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
+import { NAV_GROUPS, PROTECTED_ROUTES } from '@/config/nav-items'
+import { useMenuVisibility } from '@/hooks/useMenuVisibility'
 
 export default function Settings() {
   const qc = useQueryClient()
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<string | null>(null)
+  const { isVisible, setRouteVisible, resetAll } = useMenuVisibility()
 
   const testConnection = async () => {
     setTesting(true)
@@ -32,6 +35,58 @@ export default function Settings() {
         <h1 className="text-2xl font-bold">Configurações</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Gerenciamento de dados e integrações</p>
       </div>
+
+      {/* Menu visibility */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Eye className="w-4 h-4" />
+              Módulos Visíveis
+            </CardTitle>
+            <Button onClick={resetAll} variant="ghost" size="sm" className="gap-1.5 text-xs h-7">
+              <RotateCcw className="w-3 h-3" />
+              Restaurar padrão
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <p className="text-sm text-muted-foreground">
+            Escolha quais módulos aparecem no menu lateral. Dashboard e Configurações estão sempre visíveis.
+          </p>
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label} className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+                {group.label}
+              </p>
+              <div className="space-y-1">
+                {group.items.map(({ to, icon: Icon, label }) => {
+                  const isProtected = PROTECTED_ROUTES.includes(to)
+                  return (
+                    <div
+                      key={to}
+                      className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-muted/40 transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Icon className="w-4 h-4 text-muted-foreground" />
+                        <Label htmlFor={`vis-${to}`} className="text-sm font-normal cursor-pointer">
+                          {label}
+                        </Label>
+                      </div>
+                      <Switch
+                        id={`vis-${to}`}
+                        checked={isVisible(to)}
+                        onCheckedChange={(checked) => setRouteVisible(to, checked)}
+                        disabled={isProtected}
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       {/* Supabase status */}
       <Card>
