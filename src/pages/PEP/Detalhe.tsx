@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Edit2, Save, X, Plus, Trash2, Download, Upload, Image as ImageIcon, FileText, Clock, AlertTriangle, ChevronRight, Camera, ShieldAlert, Link2, Pencil } from 'lucide-react'
+import { ArrowLeft, Edit2, Save, X, Plus, Trash2, Download, Upload, Image as ImageIcon, FileText, Clock, AlertTriangle, ChevronRight, Camera, ShieldAlert, Link2, Pencil, ExternalLink } from 'lucide-react'
 import logoPoaSocial from '@/assets/logo-poa-social.png'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -25,6 +25,7 @@ import {
   usePepHistorico,
   usePepEvidencias, useUploadEvidencia, useDeleteEvidencia, getEvidenciaUrl,
   usePepRiscos, useAddPepRisco, useUpdatePepRisco, useDeletePepRisco,
+  usePepSei, useAddPepSei, useDeletePepSei,
   type PepRisco,
 } from '@/lib/queries/pep-gestao'
 
@@ -92,6 +93,9 @@ export default function PEPDetalhePage() {
   const addPepRisco = useAddPepRisco()
   const updatePepRisco = useUpdatePepRisco()
   const deletePepRisco = useDeletePepRisco()
+  const { data: pepSei = [] } = usePepSei(entry?.id)
+  const addPepSei = useAddPepSei()
+  const deletePepSei = useDeletePepSei()
 
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({
@@ -152,6 +156,22 @@ export default function PEPDetalhePage() {
     await addImpedimento.mutateAsync({ pep_entry_id: entry.id, descricao: newImpedimento.trim() })
     setNewImpedimento('')
   }, [entry, newImpedimento, addImpedimento])
+
+  // ─── SEI (Processos) ──────────────────────────────────────────────
+  const [showSeiForm, setShowSeiForm] = useState(false)
+  const [seiForm, setSeiForm] = useState({ numero_processo: '', url: '', descricao: '' })
+  const handleAddSei = useCallback(async () => {
+    if (!entry || !seiForm.numero_processo.trim()) return
+    await addPepSei.mutateAsync({
+      pep_entry_id: entry.id,
+      numero_processo: seiForm.numero_processo.trim(),
+      url: seiForm.url.trim() || undefined,
+      descricao: seiForm.descricao.trim() || undefined,
+    })
+    setSeiForm({ numero_processo: '', url: '', descricao: '' })
+    setShowSeiForm(false)
+    toast.success('Processo SEI adicionado')
+  }, [entry, seiForm, addPepSei])
 
   // ─── Riscos do Item ──────────────────────────────────────────────
   const [showRiscoForm, setShowRiscoForm] = useState(false)
@@ -549,7 +569,78 @@ export default function PEPDetalhePage() {
             </CardContent>
           </Card>
 
-          {/* Riscos do Item */}
+          {/* Processos SEI */}
+          <Card className="rounded-xl border-0 shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-900/10 flex items-center justify-center">
+                    <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  Processos SEI ({pepSei.length})
+                </CardTitle>
+                <Button variant="outline" size="sm" className="rounded-lg text-xs h-7" onClick={() => setShowSeiForm(v => !v)}>
+                  <Plus className="w-3 h-3 mr-1" />Novo
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {showSeiForm && (
+                <div className="space-y-2 p-3 rounded-lg bg-muted/30 border border-border/50">
+                  <Input
+                    placeholder="Número do processo SEI..."
+                    value={seiForm.numero_processo}
+                    onChange={e => setSeiForm(f => ({ ...f, numero_processo: e.target.value }))}
+                    className="rounded-lg"
+                  />
+                  <Input
+                    placeholder="URL do processo (opcional)..."
+                    value={seiForm.url}
+                    onChange={e => setSeiForm(f => ({ ...f, url: e.target.value }))}
+                    className="rounded-lg"
+                  />
+                  <Input
+                    placeholder="Descrição breve (opcional)..."
+                    value={seiForm.descricao}
+                    onChange={e => setSeiForm(f => ({ ...f, descricao: e.target.value }))}
+                    className="rounded-lg"
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <Button variant="ghost" size="sm" className="rounded-lg text-xs" onClick={() => setShowSeiForm(false)}>Cancelar</Button>
+                    <Button size="sm" className="rounded-lg text-xs" onClick={handleAddSei} disabled={!seiForm.numero_processo.trim()}>Adicionar</Button>
+                  </div>
+                </div>
+              )}
+              {pepSei.length === 0 && !showSeiForm && (
+                <p className="text-xs text-muted-foreground text-center py-2">Nenhum processo SEI vinculado</p>
+              )}
+              <div className="space-y-1">
+                {pepSei.map(sei => (
+                  <div key={sei.id} className="flex items-center gap-2 group p-2 rounded-lg hover:bg-muted/30 transition-colors">
+                    <FileText className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{sei.numero_processo}</p>
+                      {sei.descricao && <p className="text-xs text-muted-foreground truncate">{sei.descricao}</p>}
+                    </div>
+                    {sei.url && (
+                      <a href={sei.url} target="_blank" rel="noopener noreferrer">
+                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-lg">
+                          <ExternalLink className="w-3 h-3" />
+                        </Button>
+                      </a>
+                    )}
+                    <Button
+                      variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 rounded-lg"
+                      onClick={() => entry && deletePepSei.mutate({ id: sei.id, pep_entry_id: entry.id })}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="rounded-xl border-0 shadow-sm">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
