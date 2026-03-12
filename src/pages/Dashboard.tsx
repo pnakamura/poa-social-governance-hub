@@ -216,7 +216,7 @@ export default function Dashboard() {
 
       {/* ── EXECUÇÃO ── */}
       <SectionDivider title="Execução" />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-1.5">PMR — % Realizado por Componente <HelpTooltip id="chart-execucao-pmr" /></CardTitle>
@@ -241,9 +241,9 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-medium flex items-center gap-1.5">Status das Atividades <HelpTooltip id="chart-atividades" /></CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4 mt-2">
+            <div className="grid grid-cols-2 gap-3 mt-1">
               {atvLoading
-                ? [...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)
+                ? [...Array(4)].map((_, i) => <Skeleton key={i} className="h-18 rounded-xl" />)
                 : atv
                 ? [
                     { label: 'A Fazer', count: Math.max(0, atv.total - atv.emAndamento - atv.concluidas - atv.aguardando), color: 'text-muted-foreground', bg: 'bg-muted/40' },
@@ -251,13 +251,60 @@ export default function Dashboard() {
                     { label: 'Aguardando', count: atv.aguardando, color: 'text-yellow-600', bg: 'bg-gradient-to-br from-yellow-50 to-yellow-100/50 dark:from-yellow-950/20 dark:to-yellow-900/10' },
                     { label: 'Concluídas', count: atv.concluidas, color: 'text-green-600', bg: 'bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/20 dark:to-green-900/10' },
                   ].map((item) => (
-                    <div key={item.label} className={`text-center p-4 rounded-xl ${item.bg} hover-lift`}>
-                      <p className={`text-3xl font-bold tabular-nums ${item.color}`}>{item.count}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{item.label}</p>
+                    <div key={item.label} className={`text-center p-3 rounded-xl ${item.bg} hover-lift`}>
+                      <p className={`text-2xl font-bold tabular-nums ${item.color}`}>{item.count}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{item.label}</p>
                     </div>
                   ))
                 : null}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Impedimentos PEP */}
+        <Card className="rounded-xl border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-1.5">
+              <Ban className="w-3.5 h-3.5 text-destructive" />
+              Impedimentos PEP
+              {impedimentos && impedimentos.length > 0 && (
+                <Badge variant="destructive" className="ml-auto text-[10px] px-1.5 py-0 h-5">{impedimentos.length}</Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {impedimentos && impedimentos.length > 0 ? (
+              <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
+                {impedimentos.map((imp) => (
+                  <Link
+                    key={imp.id}
+                    to={`/pep/${imp.codigo_wbs ?? imp.pep_entry_id}`}
+                    className="flex items-start gap-2 p-2.5 rounded-lg hover:bg-muted/50 transition-colors group"
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full bg-destructive mt-1.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      {imp.codigo_wbs && (
+                        <span className="inline-block text-[10px] font-mono font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded mb-0.5">
+                          {imp.codigo_wbs}
+                        </span>
+                      )}
+                      <p className="text-xs text-foreground line-clamp-2 leading-relaxed">{imp.descricao}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {new Date(imp.created_at).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                    <ExternalLink className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-1" />
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-950/30 flex items-center justify-center mb-2">
+                  <CheckSquare className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+                <p className="text-xs text-muted-foreground">Nenhum impedimento ativo</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
