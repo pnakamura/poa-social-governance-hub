@@ -65,7 +65,7 @@ function detectTables(msg: string): string[] {
 // ── Structured data queries ─────────────────────────────────────────────────
 
 const TABLE_QUERIES: Record<string, string> = {
-  pep_entries: "ref,comp,prod,subp,pct,descricao,n_atual,o_atual,p_atual,r_base,t_base",
+  pep_entries: "ref,comp,prod,subp,pct,descricao,codigo_wbs,secretaria,n_atual,o_atual,p_atual,r_base,s_base,t_base,desembolso_total,tipo_aquisicao,metodo_aquisicao,lote,resumo_executivo",
   riscos: "*",
   aquisicoes: "*",
   pmr_outputs: "*",
@@ -77,7 +77,7 @@ const TABLE_QUERIES: Record<string, string> = {
 };
 
 const TABLE_LIMITS: Record<string, number> = {
-  pep_entries: 80,
+  pep_entries: 120,
   riscos: 30,
   aquisicoes: 50,
   pmr_outputs: 30,
