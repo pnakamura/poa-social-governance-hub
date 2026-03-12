@@ -95,7 +95,7 @@ const TABLE_LIMITS: Record<string, number> = {
 };
 
 async function fetchContext(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   tables: string[],
 ): Promise<Record<string, unknown>> {
   const context: Record<string, unknown> = {};
