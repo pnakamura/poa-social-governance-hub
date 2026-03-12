@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
+import { ChatAssistant } from '@/components/ChatAssistant'
 
 export function AppLayout() {
   const location = useLocation()
@@ -14,6 +15,7 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <ChatAssistant />
     </div>
   )
 }

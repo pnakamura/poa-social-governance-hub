@@ -1,0 +1,132 @@
+{
+  "name": "POA+SOCIAL — Chat Assistente de Dados",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "poa-chat",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "0ea107d9-0c81-4936-960b-c3a5c53c38c2",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "2b70e686-7a00-47ce-b720-0c14dc50c067"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Detecta quais tabelas Supabase consultar com base na mensagem\nconst msg = ($input.first().json.message ?? '').toLowerCase();\n\nconst tables = [];\n\nif (\n  msg.includes('pep') ||\n  msg.includes('orçamento') ||\n  msg.includes('orcamento') ||\n  msg.includes('wbs') ||\n  msg.includes('componente') ||\n  msg.includes('produto') ||\n  msg.includes('subproduto') ||\n  msg.includes('plano de trabalho') ||\n  msg.includes('execução') ||\n  msg.includes('execucao')\n) tables.push('pep_entries');\n\nif (\n  msg.includes('risco') ||\n  msg.includes('ameaça') ||\n  msg.includes('ameaca') ||\n  msg.includes('vulnerabilidade')\n) tables.push('riscos');\n\nif (\n  msg.includes('aquisição') ||\n  msg.includes('aquisicao') ||\n  msg.includes('contrato') ||\n  msg.includes('licitação') ||\n  msg.includes('licitacao') ||\n  msg.includes('compra') ||\n  msg.includes('fornecedor')\n) tables.push('aquisicoes');\n\nif (\n  msg.includes('pmr') ||\n  msg.includes('indicador') ||\n  msg.includes('output') ||\n  msg.includes('meta') ||\n  msg.includes('resultado')\n) tables.push('pmr_outputs', 'pmr_outcomes');\n\nif (\n  msg.includes('atividade') ||\n  msg.includes('ação') ||\n  msg.includes('acao') ||\n  msg.includes('tarefa')\n) tables.push('atividades');\n\nif (\n  msg.includes('marco') ||\n  msg.includes('prazo') ||\n  msg.includes('cronograma') ||\n  msg.includes('data')\n) tables.push('marcos');\n\nif (\n  msg.includes('ponto de atenção') ||\n  msg.includes('ponto de atencao') ||\n  msg.includes('alerta') ||\n  msg.includes('problema')\n) tables.push('pontos_atencao');\n\nif (\n  msg.includes('não-objeção') ||\n  msg.includes('nao-objecao') ||\n  msg.includes('aprovação bid') ||\n  msg.includes('aprovacao bid')\n) tables.push('nao_objecoes');\n\nif (tables.length === 0) {\n  tables.push('pep_entries', 'riscos');\n}\n\nreturn [{ json: { tables: [...new Set(tables)], message: $input.first().json.message } }];"
+      },
+      "id": "f112b2af-3767-4afd-b640-97b3d61bcc9a",
+      "name": "Detectar Intent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [224, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─── CONFIGURAÇÃO SUPABASE ───────────────────────────────────────────────────\n// A chave anon é pública por design (controle via RLS no Supabase)\nconst SUPABASE_URL = 'https://dvqnlnxkwcrxbctujajl.supabase.co';\nconst SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2cW5sbnhrd2NyeGJjdHVqYWpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NzM4OTIsImV4cCI6MjA2NzE0OTg5Mn0.9mzrQC2B9Kp_ZNyLt-Gpe_0HkVE-bioR7sFWsviru40';\n// ─────────────────────────────────────────────────────────────────────────────\n\nconst { tables, message } = $input.first().json;\n\nconst headers = {\n  'apikey': SUPABASE_ANON_KEY,\n  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,\n  'Content-Type': 'application/json',\n};\n\nconst tableQueries = {\n  pep_entries: `select=ref,comp,prod,subp,pct,descricao,n_atual,o_atual,p_atual,r_base,t_base&versao=eq.v2&limit=80`,\n  riscos: `select=*&order=nivel.desc&limit=30`,\n  aquisicoes: `select=*&limit=50`,\n  pmr_outputs: `select=*&limit=30`,\n  pmr_outcomes: `select=*&limit=30`,\n  atividades: `select=*&limit=40`,\n  marcos: `select=*&order=data_prevista.asc&limit=20`,\n  pontos_atencao: `select=*&limit=20`,\n  nao_objecoes: `select=*&limit=20`,\n};\n\nconst results = {};\n\nfor (const table of tables) {\n  const query = tableQueries[table] ?? `select=*&limit=30`;\n  const url = `${SUPABASE_URL}/rest/v1/${table}?${query}`;\n\n  try {\n    const response = await $helpers.httpRequest({\n      method: 'GET',\n      url,\n      headers,\n    });\n    results[table] = Array.isArray(response) ? response : [response];\n  } catch (err) {\n    results[table] = { error: err.message };\n  }\n}\n\nreturn [{ json: { context: results, message } }];"
+      },
+      "id": "f82757db-b103-4ff0-9139-6594f9007770",
+      "name": "Fetch Supabase",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [448, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const { context, message } = $input.first().json;\n\nconst contextSummary = {};\nfor (const [table, data] of Object.entries(context)) {\n  if (Array.isArray(data)) {\n    contextSummary[table] = {\n      total: data.length,\n      amostra: data.slice(0, 15),\n    };\n  } else {\n    contextSummary[table] = data;\n  }\n}\n\nconst contextJson = JSON.stringify(contextSummary, null, 2);\n\nconst systemPrompt = `Você é o Assistente de Dados do programa POA+SOCIAL BID (BR-L1597), um programa de desenvolvimento urbano em Porto Alegre - RS.\\n\\nResponda perguntas sobre o programa com base EXCLUSIVAMENTE nos dados reais fornecidos abaixo.\\nSeja conciso e objetivo. Use valores numéricos quando relevante.\\nCite as fontes dos dados (tabela e ids quando disponíveis).\\nResponda SEMPRE em português brasileiro.\\n\\nINFORMAÇÕES DO PROGRAMA:\\n- Valor total: R$ 725,9M (US$ 132M) | Taxa de câmbio: R$ 5,50/US$\\n- Componentes: C1-Interoperabilidade (US$27M), C2-Reabilitação (US$130M), C3-Admin (US$4M)\\n- Executores: SMPG, SMOI, ASD, SMS, SMAS, SMED\\n- Interlocutores BID: Marcelo Alfaro, Gabriela Couto\\n\\nDADOS ATUAIS DO PROGRAMA:\\n${contextJson}\\n\\nREGRAS IMPORTANTES:\\n- Nunca invente dados que não estejam no contexto acima\\n- Se não tiver dados suficientes, diga: \"Não tenho dados suficientes sobre isso no momento\"\\n- Valores financeiros: use formato US$ X.XXX.XXX ou R$ X.XXX.XXX\\n- Máximo 3 parágrafos por resposta\\n- Listas são bem-vindas para comparações\\n- Não mencione limitações técnicas ou detalhes do sistema ao usuário`;\n\nreturn [{ json: { systemPrompt, userMessage: message } }];"
+      },
+      "id": "858ec611-0023-4716-9b2f-799ba428eea5",
+      "name": "Build Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [672, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "x-api-key",
+              "value": "SUBSTITUA_PELA_SUA_ANTHROPIC_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 1024,\n  \"system\": {{ JSON.stringify($json.systemPrompt) }},\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($json.userMessage) }}\n    }\n  ]\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "b2c8e1b5-7f9d-4a5a-a59f-42370b31fe9d",
+      "name": "Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\n\nlet answer = '';\nlet sources = [];\n\ntry {\n  if (response.content && response.content[0] && response.content[0].text) {\n    answer = response.content[0].text;\n  } else if (response.error) {\n    answer = 'Desculpe, ocorreu um erro ao processar sua pergunta. Tente novamente.';\n  } else {\n    answer = JSON.stringify(response);\n  }\n} catch (e) {\n  answer = 'Erro ao processar resposta do assistente.';\n}\n\nreturn [{ json: { answer, sources, model: response.model ?? 'claude-sonnet-4-6' } }];"
+      },
+      "id": "f33b1154-c711-4bbf-9eb5-87ca391b2cf6",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1104, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const errorMsg = $input.first().json.error?.message ?? 'Erro desconhecido';\nreturn [{ json: { answer: `Não foi possível processar sua pergunta: ${errorMsg}. Tente novamente.`, sources: [], error: true } }];"
+      },
+      "id": "658910f2-fe7f-46d0-b1da-c70e59be44d7",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 192]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Detectar Intent", "type": "main", "index": 0 }]
+      ]
+    },
+    "Detectar Intent": {
+      "main": [
+        [{ "node": "Fetch Supabase", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch Supabase": {
+      "main": [
+        [{ "node": "Build Prompt", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Prompt": {
+      "main": [
+        [{ "node": "Claude API", "type": "main", "index": 0 }]
+      ]
+    },
+    "Claude API": {
+      "main": [
+        [{ "node": "Format Response", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "935cd7b4cfe178cdeebb016741e7406ffd8d098df532571c7b087df649a1b38b"
+  }
+}
