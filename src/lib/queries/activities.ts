@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase, type Atividade } from '../supabase'
+import { supabase, type Atividade, type AtividadeComentario, type AtividadeAlerta } from '../supabase'
+
+// ─── Atividades ─────────────────────────────────────────────────────────────
 
 export const useAtividades = () =>
   useQuery<Atividade[]>({
@@ -48,6 +50,20 @@ export const useUpdateAtividadeStatus = () => {
   })
 }
 
+export const useUpdateAtividade = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, ...fields }: Partial<Atividade> & { id: string }) => {
+      const { error } = await supabase
+        .from('atividades')
+        .update({ ...fields, atualizado_em: new Date().toISOString() })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['atividades'] }),
+  })
+}
+
 export const useCreateAtividade = () => {
   const qc = useQueryClient()
   return useMutation({
@@ -70,3 +86,104 @@ export const useDeleteAtividade = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['atividades'] }),
   })
 }
+
+// ─── Comentários ────────────────────────────────────────────────────────────
+
+export const useComentarios = (atividadeId: string | null) =>
+  useQuery<AtividadeComentario[]>({
+    queryKey: ['atividade_comentarios', atividadeId],
+    enabled: !!atividadeId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('atividade_comentarios')
+        .select('*')
+        .eq('atividade_id', atividadeId!)
+        .order('criado_em', { ascending: true })
+      if (error) throw error
+      return data ?? []
+    },
+  })
+
+export const useCreateComentario = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (c: Omit<AtividadeComentario, 'id' | 'criado_em'>) => {
+      const { error } = await supabase.from('atividade_comentarios').insert(c)
+      if (error) throw error
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['atividade_comentarios', vars.atividade_id] })
+      qc.invalidateQueries({ queryKey: ['atividade_counts'] })
+    },
+  })
+}
+
+// ─── Alertas ────────────────────────────────────────────────────────────────
+
+export const useAlertas = (atividadeId: string | null) =>
+  useQuery<AtividadeAlerta[]>({
+    queryKey: ['atividade_alertas', atividadeId],
+    enabled: !!atividadeId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('atividade_alertas')
+        .select('*')
+        .eq('atividade_id', atividadeId!)
+        .order('criado_em', { ascending: false })
+      if (error) throw error
+      return data ?? []
+    },
+  })
+
+export const useCreateAlerta = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (a: Omit<AtividadeAlerta, 'id' | 'criado_em'>) => {
+      const { error } = await supabase.from('atividade_alertas').insert(a)
+      if (error) throw error
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['atividade_alertas', vars.atividade_id] })
+      qc.invalidateQueries({ queryKey: ['atividade_counts'] })
+    },
+  })
+}
+
+export const useToggleAlertaResolvido = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, resolvido, atividade_id }: { id: string; resolvido: boolean; atividade_id: string }) => {
+      const { error } = await supabase.from('atividade_alertas').update({ resolvido }).eq('id', id)
+      if (error) throw error
+      return atividade_id
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['atividade_alertas', vars.atividade_id] })
+      qc.invalidateQueries({ queryKey: ['atividade_counts'] })
+    },
+  })
+}
+
+// ─── Counts for badges ─────────────────────────────────────────────────────
+
+export const useAtividadeCounts = () =>
+  useQuery({
+    queryKey: ['atividade_counts'],
+    queryFn: async () => {
+      const [comentarios, alertas] = await Promise.all([
+        supabase.from('atividade_comentarios').select('atividade_id'),
+        supabase.from('atividade_alertas').select('atividade_id,resolvido'),
+      ])
+      const commentMap: Record<string, number> = {}
+      for (const c of comentarios.data ?? []) {
+        commentMap[c.atividade_id] = (commentMap[c.atividade_id] || 0) + 1
+      }
+      const alertMap: Record<string, number> = {}
+      for (const a of alertas.data ?? []) {
+        if (!(a as any).resolvido) {
+          alertMap[a.atividade_id] = (alertMap[a.atividade_id] || 0) + 1
+        }
+      }
+      return { commentMap, alertMap }
+    },
+  })
