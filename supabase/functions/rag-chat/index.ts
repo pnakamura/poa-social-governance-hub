@@ -132,7 +132,7 @@ async function generateEmbedding(text: string): Promise<number[] | null> {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: { parts: [{ text }] } }),
+        body: JSON.stringify({ content: { parts: [{ text }] }, outputDimensionality: 768 }),
       }
     );
 
