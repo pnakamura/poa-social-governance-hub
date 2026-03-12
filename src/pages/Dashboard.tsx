@@ -106,6 +106,7 @@ export default function Dashboard() {
   const { data: pontos }                           = usePontosAtencao()
   const { data: proximosMarcos }                   = useProximosMarcos(4)
   const { data: kpis }                             = useProgramaContextoKPIs()
+  const { data: impedimentos }                     = useImpedimentosAbertos()
 
   const pmrPorComp = (() => {
     if (!pmrOutputs?.length) return []
