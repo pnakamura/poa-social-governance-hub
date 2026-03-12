@@ -1,0 +1,1 @@
+CREATE POLICY "rag_chunks_update" ON public.rag_chunks FOR UPDATE USING ((auth.role() = 'service_role'::text));
