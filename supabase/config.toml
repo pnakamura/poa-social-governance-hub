@@ -2,3 +2,12 @@ project_id = "dvqnlnxkwcrxbctujajl"
 
 [functions.sync-pep-sheets]
 verify_jwt = false
+
+[functions.n8n-chat-webhook]
+verify_jwt = false
+
+[functions.rag-chat]
+verify_jwt = false
+
+[functions.rag-ingest]
+verify_jwt = false
