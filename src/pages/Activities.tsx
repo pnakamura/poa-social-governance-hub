@@ -545,3 +545,87 @@ function AlertsSheet({ atividadeId, onClose }: { atividadeId: string | null; onC
     </Sheet>
   )
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Checklist Sheet
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ChecklistSheet({ atividadeId, onClose }: { atividadeId: string | null; onClose: () => void }) {
+  const { data: items = [], isLoading } = useChecklist(atividadeId)
+  const createItem = useCreateChecklistItem()
+  const toggleItem = useToggleChecklistItem()
+  const deleteItem = useDeleteChecklistItem()
+  const [texto, setTexto] = useState('')
+
+  const handleAdd = async () => {
+    if (!texto.trim() || !atividadeId) return
+    const maxOrdem = items.length > 0 ? Math.max(...items.map(i => i.ordem)) + 1 : 0
+    await createItem.mutateAsync({ atividade_id: atividadeId, texto: texto.trim(), concluido: false, ordem: maxOrdem })
+    setTexto('')
+    toast.success('Item adicionado')
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAdd() }
+  }
+
+  const done = items.filter(i => i.concluido).length
+  const total = items.length
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0
+
+  return (
+    <Sheet open={!!atividadeId} onOpenChange={o => !o && onClose()}>
+      <SheetContent className="sm:max-w-md flex flex-col">
+        <SheetHeader>
+          <SheetTitle className="flex items-center gap-2">
+            <ListChecks className="h-5 w-5" /> Checklist
+          </SheetTitle>
+        </SheetHeader>
+
+        {total > 0 && (
+          <div className="space-y-1 pb-2">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{done} de {total} concluídos</span>
+              <span>{pct}%</span>
+            </div>
+            <Progress value={pct} className="h-2" />
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto space-y-1 py-2">
+          {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
+          {items.length === 0 && !isLoading && <p className="text-sm text-muted-foreground text-center py-8">Nenhum item no checklist</p>}
+          {items.map(item => (
+            <div key={item.id} className="flex items-center gap-2 group rounded-md px-2 py-1.5 hover:bg-muted/50">
+              <Checkbox
+                checked={item.concluido}
+                onCheckedChange={v => toggleItem.mutate({ id: item.id, concluido: !!v, atividade_id: item.atividade_id })}
+              />
+              <span className={cn('text-sm flex-1', item.concluido && 'line-through text-muted-foreground')}>{item.texto}</span>
+              <button
+                onClick={() => deleteItem.mutate({ id: item.id, atividade_id: item.atividade_id })}
+                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                title="Remover item"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-t pt-3">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Novo item..."
+              value={texto}
+              onChange={e => setTexto(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="flex-1"
+            />
+            <Button onClick={handleAdd} disabled={createItem.isPending || !texto.trim()}>Adicionar</Button>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}
