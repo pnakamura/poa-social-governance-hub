@@ -45,11 +45,11 @@ export function Topbar() {
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
 
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-1.5 text-sm">
+      <nav aria-label="Navegação em breadcrumb" className="flex items-center gap-1.5 text-sm">
         <span className="text-muted-foreground font-medium gradient-bid-text">POA+SOCIAL</span>
         {parts.map((part, i) => (
           <span key={i} className="flex items-center gap-1.5">
-            <ChevronRight className="w-3 h-3 text-muted-foreground/40" />
+            <ChevronRight className="w-3 h-3 text-muted-foreground/40" aria-hidden="true" />
             <span className={i === parts.length - 1
               ? 'font-medium text-foreground'
               : 'text-muted-foreground hover:text-foreground transition-colors cursor-default'
@@ -68,12 +68,19 @@ export function Topbar() {
           className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
           onClick={() => qc.invalidateQueries()}
           title="Atualizar dados"
+          aria-label="Atualizar dados"
         >
-          <RefreshCw className="w-4 h-4" />
+          <RefreshCw className="w-4 h-4" aria-hidden="true" />
         </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg relative hover:bg-primary/10 hover:text-primary transition-colors" title="Notificações">
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-accent" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 rounded-lg relative hover:bg-primary/10 hover:text-primary transition-colors"
+          title="Notificações"
+          aria-label="Notificações"
+        >
+          <Bell className="w-4 h-4" aria-hidden="true" />
+          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-accent" aria-hidden="true" />
         </Button>
         {syncLabel && (
           <>

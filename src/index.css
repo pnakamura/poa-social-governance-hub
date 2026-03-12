@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+/* font-display: swap aplicado via &display=swap acima — evita FOIT */
 
 @tailwind base;
 @tailwind components;
@@ -117,6 +118,20 @@
   code, pre, kbd {
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
   }
+
+  /* ── Focus ring visível para navegação por teclado ─── */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* ── Respeitar prefers-reduced-motion ────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
 @layer utilities {
@@ -175,7 +190,7 @@
 
   /* ── PEP tree indentation ─────────────────── */
   .pep-row-C  { @apply bg-primary/10 font-semibold; }
-  .pep-row-SC { @apply bg-primary/6 font-medium text-muted-foreground; }
+  .pep-row-SC { @apply bg-primary/[6%] font-medium text-muted-foreground; }
   .pep-row-P  { @apply bg-background; }
   .pep-row-SP { @apply bg-muted/40 pl-6; }
   .pep-row-PT { @apply pl-10 text-sm text-muted-foreground; }

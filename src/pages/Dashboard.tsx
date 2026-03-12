@@ -18,7 +18,7 @@ import { useProximosMarcos } from '@/lib/queries/marcos'
 import { useProgramaContextoKPIs } from '@/lib/queries/contexto'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend, PieChart, Pie, Cell,
+  ResponsiveContainer, Legend, PieChart, Pie, Cell, LabelList,
 } from 'recharts'
 
 const USD = (v: number) =>
@@ -69,7 +69,7 @@ function DataFreshnessBar() {
   const anyStale = statuses.some(s => s.status === 'critico' || s.status === 'alerta')
 
   return (
-    <Link to="/qualidade-dados" className="block">
+    <Link to="/qualidade-dados" className="block cursor-pointer">
       <div className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-xs transition-all hover:shadow-sm ${anyStale ? 'bg-yellow-50/80 border-yellow-200/60 dark:bg-yellow-950/10' : 'glass-card'}`}>
         <ShieldCheck className={`w-3.5 h-3.5 shrink-0 ${anyStale ? 'text-yellow-600' : 'text-green-600'}`} />
         <span className="text-muted-foreground font-medium shrink-0">Fontes:</span>
@@ -301,11 +301,27 @@ export default function Dashboard() {
             {riscosPorCat.length > 0 ? (
               <ResponsiveContainer width="100%" height={210}>
                 <PieChart>
-                  <Pie data={riscosPorCat} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80}
-                    label={({ name, value }) => `${name} (${value})`} labelLine={false}>
+                  <Pie
+                    data={riscosPorCat}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="45%"
+                    outerRadius={72}
+                    innerRadius={32}
+                  >
                     {riscosPorCat.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                   </Pie>
-                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }} />
+                  <Tooltip
+                    contentStyle={{ fontSize: 12, borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
+                    formatter={(value: number, name: string) => [`${value} risco(s)`, name]}
+                  />
+                  <Legend
+                    iconType="circle"
+                    iconSize={8}
+                    wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
+                    formatter={(value) => <span className="text-muted-foreground">{value}</span>}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             ) : <p className="text-sm text-muted-foreground text-center py-14">Sem dados de riscos.</p>}
@@ -371,7 +387,7 @@ export default function Dashboard() {
             {proximosMarcos?.length ? (
               <div className="space-y-2">
                 {proximosMarcos.map((marco) => (
-                  <div key={marco.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-muted/30 transition-colors">
+                  <div key={marco.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-muted/30 transition-colors cursor-default">
                     <div
                       className="w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ring-2 ring-offset-1 ring-offset-card"
                       style={{ backgroundColor: MARCO_COLORS[marco.status] ?? '#94A3B8', boxShadow: `0 0 6px ${MARCO_COLORS[marco.status] ?? '#94A3B8'}40` }}

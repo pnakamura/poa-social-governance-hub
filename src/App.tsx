@@ -1,7 +1,35 @@
+import { Component, type ReactNode } from 'react'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/sonner'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null }
+  static getDerivedStateFromError(error: Error) { return { error } }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-screen gap-4 p-8 text-center">
+          <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+            <span className="text-destructive text-xl font-bold">!</span>
+          </div>
+          <h2 className="text-lg font-semibold">Algo deu errado</h2>
+          <p className="text-sm text-muted-foreground max-w-md">
+            {(this.state.error as Error).message ?? 'Erro inesperado. Recarregue a página.'}
+          </p>
+          <button
+            className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+            onClick={() => { this.setState({ error: null }); window.location.href = '/' }}
+          >
+            Voltar ao início
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 import { AppLayout } from '@/components/layout/AppLayout'
 import Dashboard from '@/pages/Dashboard'
@@ -33,6 +61,7 @@ const queryClient = new QueryClient({
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <BrowserRouter>
@@ -70,5 +99,6 @@ export default function App() {
         <Toaster position="bottom-right" richColors />
       </TooltipProvider>
     </QueryClientProvider>
+    </ErrorBoundary>
   )
 }
