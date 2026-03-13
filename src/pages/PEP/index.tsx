@@ -1154,7 +1154,19 @@ export default function PEPPage() {
             </Select>
           )}
 
-          <div className="flex rounded-md border border-border overflow-hidden text-xs">
+          {/* Show hidden toggle */}
+          {hiddenIds.length > 0 && (
+            <Button
+              variant={showHidden ? 'default' : 'outline'}
+              size="sm"
+              className="h-8 text-xs gap-1.5"
+              onClick={() => setShowHidden(!showHidden)}
+            >
+              <EyeOff className="w-3.5 h-3.5" />
+              {showHidden ? `Ocultos (${hiddenIds.length})` : `${hiddenIds.length} oculto${hiddenIds.length > 1 ? 's' : ''}`}
+            </Button>
+          )}
+
             <button
               className={cn('px-3 py-1.5 transition-colors', moeda === 'USD' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}
               onClick={() => setMoeda('USD')}
