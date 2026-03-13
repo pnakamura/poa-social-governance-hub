@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SPREADSHEET_ID = "1XRIb1og8sphXhOtdkbOd8U1G3OuL8508";
+const SPREADSHEET_ID = "1zk6KJCvbr7HKlDYIAIDKDBCyZ_rR3ZW2Kck1gYqrQyY";
 
 // ── CSV helpers ────────────────────────────────────────────────────────────
 
