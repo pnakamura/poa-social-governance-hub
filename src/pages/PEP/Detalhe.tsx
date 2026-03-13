@@ -598,7 +598,7 @@ export default function PEPDetalhePage() {
                   <div key={imp.id} className="flex items-center gap-2 group p-2 rounded-lg hover:bg-muted/30 transition-colors">
                     <Checkbox
                       checked={imp.resolvido}
-                      onCheckedChange={checked => entry && toggleImpedimento.mutate({ id: imp.id, resolvido: !!checked, pep_entry_id: entry.id })}
+                      onCheckedChange={checked => entry && toggleImpedimento.mutate({ id: imp.id, resolvido: !!checked, pep_entry_id: entry.id, descricao: imp.descricao })}
                     />
                     <span className={cn('text-sm flex-1', imp.resolvido && 'line-through text-muted-foreground')}>{imp.descricao}</span>
                     <Button
