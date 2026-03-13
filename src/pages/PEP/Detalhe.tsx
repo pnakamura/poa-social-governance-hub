@@ -332,9 +332,20 @@ export default function PEPDetalhePage() {
     )
   }
 
+  const { data: tarefasGantt = [] } = usePepTarefas(entry?.id)
   const statusCfg = STATUS_MAP[gestao?.status ?? 'nao_iniciado'] ?? STATUS_MAP.nao_iniciado
   const riscoCfg = RISCO_MAP[gestao?.nivel_risco ?? 'baixo'] ?? RISCO_MAP.baixo
-  const progresso = gestao?.progresso ?? 0
+  const progresso = useMemo(() => {
+    if (tarefasGantt.length === 0) return gestao?.progresso ?? 0
+    let totalDias = 0
+    let somaProgresso = 0
+    for (const t of tarefasGantt) {
+      const dias = Math.max(1, (new Date(t.data_fim).getTime() - new Date(t.data_inicio).getTime()) / 86400000)
+      totalDias += dias
+      somaProgresso += (t.progresso ?? 0) * dias
+    }
+    return totalDias > 0 ? Math.round(somaProgresso / totalDias) : 0
+  }, [tarefasGantt, gestao?.progresso])
 
   return (
     <div className="space-y-6">
