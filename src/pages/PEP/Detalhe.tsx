@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Edit2, Save, X, Plus, Trash2, Download, Upload, Image as ImageIcon, FileText, Clock, AlertTriangle, ChevronRight, Camera, ShieldAlert, Link2, Pencil, ExternalLink } from 'lucide-react'
+import PepGanttChart from '@/components/PepGanttChart'
 import logoPoaSocial from '@/assets/logo-poa-social.png'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -454,6 +455,9 @@ export default function PEPDetalhePage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Cronograma Físico-Financeiro (Gantt + Desembolso) */}
+          {entry && <PepGanttChart entryId={entry.id} />}
 
           {/* Gestão da Execução */}
           <Card className="rounded-xl border-0 shadow-sm">
