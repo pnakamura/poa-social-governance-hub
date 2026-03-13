@@ -98,6 +98,7 @@ export default function PEPDetalhePage() {
   const { data: pepSei = [] } = usePepSei(entry?.id)
   const addPepSei = useAddPepSei()
   const deletePepSei = useDeletePepSei()
+  const { data: tarefasGantt = [] } = usePepTarefas(entry?.id)
 
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({
