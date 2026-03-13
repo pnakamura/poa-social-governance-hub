@@ -352,20 +352,28 @@ export const useAddPepSei = () => {
     mutationFn: async (payload: { pep_entry_id: string; numero_processo: string; url?: string; descricao?: string }) => {
       const { error } = await supabase.from('pep_sei').insert(payload)
       if (error) throw error
+      await logChange(payload.pep_entry_id, 'processo_sei', null, payload.numero_processo)
       return payload.pep_entry_id
     },
-    onSuccess: (eid) => qc.invalidateQueries({ queryKey: ['pep_sei', eid] }),
+    onSuccess: (eid) => {
+      qc.invalidateQueries({ queryKey: ['pep_sei', eid] })
+      qc.invalidateQueries({ queryKey: ['pep_historico', eid] })
+    },
   })
 }
 
 export const useDeletePepSei = () => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, pep_entry_id }: { id: string; pep_entry_id: string }) => {
+    mutationFn: async ({ id, pep_entry_id, numero }: { id: string; pep_entry_id: string; numero?: string }) => {
       const { error } = await supabase.from('pep_sei').delete().eq('id', id)
       if (error) throw error
+      await logChange(pep_entry_id, 'processo_sei', numero ?? id, null)
       return pep_entry_id
     },
-    onSuccess: (eid) => qc.invalidateQueries({ queryKey: ['pep_sei', eid] }),
+    onSuccess: (eid) => {
+      qc.invalidateQueries({ queryKey: ['pep_sei', eid] })
+      qc.invalidateQueries({ queryKey: ['pep_historico', eid] })
+    },
   })
 }
