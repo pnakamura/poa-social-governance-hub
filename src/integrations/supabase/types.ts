@@ -762,6 +762,7 @@ export type Database = {
           progresso: number
           status: string
           updated_at: string | null
+          visivel_pep: boolean
         }
         Insert: {
           created_at?: string | null
@@ -774,6 +775,7 @@ export type Database = {
           progresso?: number
           status?: string
           updated_at?: string | null
+          visivel_pep?: boolean
         }
         Update: {
           created_at?: string | null
@@ -786,6 +788,7 @@ export type Database = {
           progresso?: number
           status?: string
           updated_at?: string | null
+          visivel_pep?: boolean
         }
         Relationships: [
           {

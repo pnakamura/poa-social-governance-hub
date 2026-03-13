@@ -11,6 +11,7 @@ export interface PepGestao {
   data_fim_previsto: string | null
   nivel_risco: string
   notas: string | null
+  visivel_pep: boolean
   created_at: string
   updated_at: string
 }
