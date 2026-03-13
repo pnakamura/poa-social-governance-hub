@@ -126,6 +126,8 @@ export default function PEPDetalhePage() {
     channel.subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [entry?.id, queryClient])
+
+  const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({
     status: 'nao_iniciado', progresso: 0, data_inicio_real: '', data_fim_previsto: '',
     nivel_risco: 'baixo', notas: '', tipo_aquisicao: '', metodo_aquisicao: '',
