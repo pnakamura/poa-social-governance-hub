@@ -456,6 +456,9 @@ export default function PEPDetalhePage() {
             </CardContent>
           </Card>
 
+          {/* Cronograma Físico-Financeiro (Gantt + Desembolso) */}
+          {entry && <PepGanttChart entryId={entry.id} />}
+
           {/* Gestão da Execução */}
           <Card className="rounded-xl border-0 shadow-sm">
             <CardHeader className="pb-3">
