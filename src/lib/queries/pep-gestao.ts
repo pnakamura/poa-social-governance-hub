@@ -406,3 +406,40 @@ export const useDeletePepSei = () => {
     },
   })
 }
+
+// ─── Batch queries for Analytics ──────────────────────────────────────────────
+export const useAllPepGestao = () =>
+  useQuery<PepGestao[]>({
+    queryKey: ['pep_gestao_all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pep_gestao')
+        .select('*')
+      if (error) throw error
+      return data ?? []
+    },
+  })
+
+export const useAllPepImpedimentos = () =>
+  useQuery<PepImpedimento[]>({
+    queryKey: ['pep_impedimentos_all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pep_impedimentos')
+        .select('*')
+      if (error) throw error
+      return data ?? []
+    },
+  })
+
+export const useAllPepRiscos = () =>
+  useQuery<PepRisco[]>({
+    queryKey: ['pep_riscos_all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pep_riscos')
+        .select('*')
+      if (error) throw error
+      return data ?? []
+    },
+  })
