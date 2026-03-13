@@ -16,7 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
 import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { cn } from '@/lib/utils'
+import { cn, diffWords } from '@/lib/utils'
 import { toast } from 'sonner'
 
 import { usePEPEntries } from '@/lib/queries/pep'
@@ -1001,20 +1001,7 @@ export default function PEPDetalhePage() {
                     const hasAnterior = !!anterior
                     const hasNovo = !!novo
 
-                    let resumo: string
-                    if (!hasAnterior && hasNovo) {
-                      resumo = (novo!.length > 60 ? novo!.substring(0, 60) + '...' : novo!) + ' — Inserido'
-                    } else if (hasAnterior && !hasNovo) {
-                      resumo = (anterior!.length > 60 ? anterior!.substring(0, 60) + '...' : anterior!) + ' — Removido'
-                    } else if (hasAnterior && hasNovo) {
-                      if (anterior!.length > 30 || novo!.length > 30) {
-                        resumo = (novo!.length > 60 ? novo!.substring(0, 60) + '...' : novo!) + ' — Alterado'
-                      } else {
-                        resumo = `${anterior} → ${novo}`
-                      }
-                    } else {
-                      resumo = '(sem alteração)'
-                    }
+                    const resumo = diffWords(anterior, novo)
 
                     return (
                       <div key={h.id} className="text-xs border-l-2 border-primary/20 pl-3 py-1 hover:bg-muted/20 rounded-r-lg transition-colors">
