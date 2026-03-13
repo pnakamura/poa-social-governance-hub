@@ -583,6 +583,44 @@ export type Database = {
         }
         Relationships: []
       }
+      pep_cronograma_financeiro: {
+        Row: {
+          created_at: string | null
+          id: string
+          moeda: string | null
+          pep_entry_id: string
+          periodo: string
+          valor_planejado: number | null
+          valor_realizado: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          moeda?: string | null
+          pep_entry_id: string
+          periodo: string
+          valor_planejado?: number | null
+          valor_realizado?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          moeda?: string | null
+          pep_entry_id?: string
+          periodo?: string
+          valor_planejado?: number | null
+          valor_realizado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pep_cronograma_financeiro_pep_entry_id_fkey"
+            columns: ["pep_entry_id"]
+            isOneToOne: false
+            referencedRelation: "pep_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pep_entries: {
         Row: {
           codigo_wbs: string | null
@@ -911,6 +949,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pep_sei_pep_entry_id_fkey"
+            columns: ["pep_entry_id"]
+            isOneToOne: false
+            referencedRelation: "pep_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pep_tarefas: {
+        Row: {
+          created_at: string | null
+          data_fim: string
+          data_inicio: string
+          fase: string
+          id: string
+          notas: string | null
+          ordem: number | null
+          pep_entry_id: string
+          progresso: number | null
+          responsavel: string | null
+          status: string | null
+          titulo: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_fim: string
+          data_inicio: string
+          fase: string
+          id?: string
+          notas?: string | null
+          ordem?: number | null
+          pep_entry_id: string
+          progresso?: number | null
+          responsavel?: string | null
+          status?: string | null
+          titulo: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_fim?: string
+          data_inicio?: string
+          fase?: string
+          id?: string
+          notas?: string | null
+          ordem?: number | null
+          pep_entry_id?: string
+          progresso?: number | null
+          responsavel?: string | null
+          status?: string | null
+          titulo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pep_tarefas_pep_entry_id_fkey"
             columns: ["pep_entry_id"]
             isOneToOne: false
             referencedRelation: "pep_entries"
