@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Edit2, Save, X, Plus, Trash2, Download, Upload, Image as ImageIcon, FileText, Clock, AlertTriangle, ChevronRight, Camera, ShieldAlert, Link2, Pencil, ExternalLink, DollarSign, Settings2, CheckCircle2, BarChart3, FolderOpen, History, Package } from 'lucide-react'
+import { ArrowLeft, Edit2, Save, X, Plus, Trash2, Download, Upload, Image as ImageIcon, FileText, Clock, AlertTriangle, ChevronRight, Camera, ShieldAlert, Link2, Pencil, ExternalLink, DollarSign, Settings2, CheckCircle2, BarChart3, FolderOpen, History, Package, Eye, EyeOff } from 'lucide-react'
 import PepGanttChart from '@/components/PepGanttChart'
 import { usePepTarefas } from '@/lib/queries/pep-tarefas'
 import logoPoaSocial from '@/assets/logo-poa-social.png'
