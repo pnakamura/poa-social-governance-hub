@@ -332,7 +332,6 @@ export default function PEPDetalhePage() {
     )
   }
 
-  const { data: tarefasGantt = [] } = usePepTarefas(entry?.id)
   const statusCfg = STATUS_MAP[gestao?.status ?? 'nao_iniciado'] ?? STATUS_MAP.nao_iniciado
   const riscoCfg = RISCO_MAP[gestao?.nivel_risco ?? 'baixo'] ?? RISCO_MAP.baixo
   const progresso = useMemo(() => {
