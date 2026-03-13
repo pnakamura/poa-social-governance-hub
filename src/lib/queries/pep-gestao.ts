@@ -193,6 +193,20 @@ export const useDeletePepHistorico = () => {
   })
 }
 
+// ─── IDs ocultos (visivel_pep = false) ────────────────────────────────────────
+export const useHiddenPepIds = () =>
+  useQuery<string[]>({
+    queryKey: ['pep_gestao_hidden'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pep_gestao')
+        .select('pep_entry_id')
+        .eq('visivel_pep', false)
+      if (error) throw error
+      return (data ?? []).map(d => d.pep_entry_id)
+    },
+  })
+
 // ─── Evidências (Storage) ─────────────────────────────────────────────────────
 const BUCKET = 'pep-evidencias'
 
