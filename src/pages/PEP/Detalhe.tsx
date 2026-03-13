@@ -991,18 +991,42 @@ export default function PEPDetalhePage() {
               {historico.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-2">Nenhuma alteração registrada</p>
               ) : (
-                <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
-                  {historico.map(h => (
-                    <div key={h.id} className="text-xs border-l-2 border-primary/20 pl-3 py-1.5 hover:bg-muted/20 rounded-r-lg transition-colors">
-                      <p className="font-medium text-foreground">{h.campo}</p>
-                      <p className="text-muted-foreground">
-                        {h.valor_anterior ?? '(vazio)'} → <span className="text-foreground">{h.valor_novo ?? '(vazio)'}</span>
-                      </p>
-                      <p className="text-muted-foreground/50 text-[10px]">
-                        {new Date(h.created_at).toLocaleString('pt-BR')} · {h.usuario}
-                      </p>
-                    </div>
-                  ))}
+                <div className="space-y-1 max-h-80 overflow-y-auto custom-scrollbar">
+                  {historico.map(h => {
+                    const dt = new Date(h.created_at)
+                    const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                    const anterior = h.valor_anterior?.trim()
+                    const novo = h.valor_novo?.trim()
+                    const hasAnterior = !!anterior
+                    const hasNovo = !!novo
+
+                    let resumo: string
+                    if (!hasAnterior && hasNovo) {
+                      resumo = (novo!.length > 60 ? novo!.substring(0, 60) + '...' : novo!) + ' — Inserido'
+                    } else if (hasAnterior && !hasNovo) {
+                      resumo = (anterior!.length > 60 ? anterior!.substring(0, 60) + '...' : anterior!) + ' — Removido'
+                    } else if (hasAnterior && hasNovo) {
+                      if (anterior!.length > 30 || novo!.length > 30) {
+                        resumo = (novo!.length > 60 ? novo!.substring(0, 60) + '...' : novo!) + ' — Alterado'
+                      } else {
+                        resumo = `${anterior} → ${novo}`
+                      }
+                    } else {
+                      resumo = '(sem alteração)'
+                    }
+
+                    return (
+                      <div key={h.id} className="text-xs border-l-2 border-primary/20 pl-3 py-1 hover:bg-muted/20 rounded-r-lg transition-colors">
+                        <p className="text-muted-foreground">
+                          <span className="text-muted-foreground/60">{dataStr}</span>
+                          {' — '}
+                          <span className="font-medium text-foreground">{h.campo}</span>
+                          {': '}
+                          {resumo}
+                        </p>
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </CardContent>
