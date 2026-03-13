@@ -1,6 +1,6 @@
-import { useState, useCallback, useRef, useMemo } from 'react'
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Edit2, Save, X, Plus, Trash2, Download, Upload, Image as ImageIcon, FileText, Clock, AlertTriangle, ChevronRight, Camera, ShieldAlert, Link2, Pencil, ExternalLink } from 'lucide-react'
 import PepGanttChart from '@/components/PepGanttChart'
 import { usePepTarefas } from '@/lib/queries/pep-tarefas'
@@ -99,6 +99,33 @@ export default function PEPDetalhePage() {
   const addPepSei = useAddPepSei()
   const deletePepSei = useDeletePepSei()
   const { data: tarefasGantt = [] } = usePepTarefas(entry?.id)
+  const queryClient = useQueryClient()
+
+  // ─── Realtime: auto-refresh on any change ───────────────────────────────────
+  useEffect(() => {
+    if (!entry?.id) return
+    const entryId = entry.id
+    const tables = [
+      { table: 'pep_gestao', key: ['pep_gestao', entryId] },
+      { table: 'pep_impedimentos', key: ['pep_impedimentos', entryId] },
+      { table: 'pep_historico', key: ['pep_historico', entryId] },
+      { table: 'pep_riscos', key: ['pep_riscos', entryId] },
+      { table: 'pep_tarefas', key: ['pep_tarefas', entryId] },
+      { table: 'pep_sei', key: ['pep_sei', entryId] },
+      { table: 'pep_cronograma_financeiro', key: ['pep_cronograma_fin', entryId] },
+    ]
+    const channel = supabase
+      .channel(`pep-detalhe-${entryId}`)
+    tables.forEach(({ table, key }) => {
+      channel.on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table, filter: `pep_entry_id=eq.${entryId}` },
+        () => { queryClient.invalidateQueries({ queryKey: key }) }
+      )
+    })
+    channel.subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [entry?.id, queryClient])
 
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({
