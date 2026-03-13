@@ -16,7 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
 import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { cn } from '@/lib/utils'
+import { cn, diffWords } from '@/lib/utils'
 import { toast } from 'sonner'
 
 import { usePEPEntries } from '@/lib/queries/pep'
