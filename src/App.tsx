@@ -39,6 +39,7 @@ import PMROutputs from '@/pages/PMR/Outputs'
 import PMROutcomes from '@/pages/PMR/Outcomes'
 import Risks from '@/pages/Risks'
 import Activities from '@/pages/Activities'
+import Demandas from '@/pages/Demandas'
 import NoObjections from '@/pages/NoObjections'
 import Analysis from '@/pages/Analysis'
 import Inteligencia from '@/pages/Inteligencia'
@@ -74,6 +75,7 @@ export default function App() {
               <Route path="pmr/outcomes" element={<PMROutcomes />} />
               <Route path="riscos" element={<Risks />} />
               <Route path="atividades" element={<Activities />} />
+              <Route path="demandas" element={<Demandas />} />
               <Route path="nao-objecoes" element={<NoObjections />} />
               <Route path="analise" element={<Analysis />} />
               <Route path="inteligencia" element={<Inteligencia />} />

@@ -5,7 +5,7 @@ import {
   AlertTriangle, ListChecks, MessageSquareWarning,
   FileText, Settings, ChevronLeft, ChevronRight, TrendingUp,
   CheckSquare, Calendar, AlertOctagon, ShoppingCart, Tag, Brain, Radar,
-  ShieldCheck, LineChart,
+  ShieldCheck, LineChart, Inbox,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SyncStatusBadge } from '@/components/SyncStatusBadge'
@@ -34,6 +34,7 @@ const NAV_GROUPS = [
     items: [
       { to: '/marcos', icon: Calendar, label: 'Timeline' },
       { to: '/atividades', icon: ListChecks, label: 'Atividades' },
+      { to: '/demandas', icon: Inbox, label: 'Demandas & Ações' },
       { to: '/riscos', icon: AlertTriangle, label: 'Riscos' },
       { to: '/pontos-atencao', icon: AlertOctagon, label: 'Pontos de Atenção' },
       { to: '/temas', icon: Tag, label: 'Temas' },

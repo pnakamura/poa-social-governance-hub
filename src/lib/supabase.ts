@@ -237,3 +237,50 @@ export type TemaMonitoramento = {
   ativo: boolean
   criado_em: string
 }
+
+// ─── Demandas & Inbox ──────────────────────────────────────────────────────
+
+export type InboxCaptura = {
+  id: string
+  tipo_fonte: 'whatsapp' | 'email' | 'ata_reuniao' | 'comunicado' | 'transcricao' | 'processo' | 'outro'
+  titulo: string | null
+  texto_bruto: string
+  autor_fonte: string | null
+  data_fonte: string | null
+  processado: boolean
+  demandas_geradas: number
+  projeto: string
+  created_at: string
+}
+
+export type Demanda = {
+  id: string
+  inbox_captura_id: string | null
+  tipo: 'acao' | 'decisao' | 'pendencia' | 'informacao' | 'alerta'
+  titulo: string
+  descricao: string | null
+  responsavel: string | null
+  prazo: string | null
+  prioridade: 'Alta' | 'Media' | 'Baixa'
+  status: 'aberta' | 'em_andamento' | 'aguardando' | 'concluida' | 'cancelada'
+  fonte_tipo: string | null
+  fonte_descricao: string | null
+  data_fonte: string | null
+  contexto_original: string | null
+  vinculo_pep_wbs: string | null
+  vinculo_risco_id: string | null
+  projeto: string
+  extraido_por_ia: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type DemandaHistorico = {
+  id: string
+  demanda_id: string
+  campo: string
+  valor_anterior: string | null
+  valor_novo: string | null
+  usuario: string
+  created_at: string
+}
