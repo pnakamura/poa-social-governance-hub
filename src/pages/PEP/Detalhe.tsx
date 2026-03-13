@@ -603,7 +603,7 @@ export default function PEPDetalhePage() {
                     <span className={cn('text-sm flex-1', imp.resolvido && 'line-through text-muted-foreground')}>{imp.descricao}</span>
                     <Button
                       variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 rounded-lg"
-                      onClick={() => entry && deleteImpedimento.mutate({ id: imp.id, pep_entry_id: entry.id })}
+                      onClick={() => entry && deleteImpedimento.mutate({ id: imp.id, pep_entry_id: entry.id, descricao: imp.descricao })}
                     >
                       <Trash2 className="w-3 h-3" />
                     </Button>
