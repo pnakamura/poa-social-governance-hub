@@ -535,6 +535,7 @@ function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry, hi
                   const isC  = row.ref === 'C'
                   const isPT = row.ref === 'PT'
                   const highlighted = search && matchingIds?.has(row.id)
+                  const isHidden = hiddenIds?.has(row.id)
                   const vals = getValues(row, moeda)
 
                   return (
