@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Edit2, Save, X, Plus, Trash2, Download, Upload, Image as ImageIcon, FileText, Clock, AlertTriangle, ChevronRight, Camera, ShieldAlert, Link2, Pencil, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Edit2, Save, X, Plus, Trash2, Download, Upload, Image as ImageIcon, FileText, Clock, AlertTriangle, ChevronRight, Camera, ShieldAlert, Link2, Pencil, ExternalLink, DollarSign, Settings2, CheckCircle2, BarChart3, FolderOpen, History, Package } from 'lucide-react'
 import PepGanttChart from '@/components/PepGanttChart'
 import { usePepTarefas } from '@/lib/queries/pep-tarefas'
 import logoPoaSocial from '@/assets/logo-poa-social.png'
@@ -16,6 +16,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
 import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn, diffWords } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -24,7 +26,7 @@ import { type PepEntry, supabase } from '@/lib/supabase'
 import {
   usePepGestao, useUpsertPepGestao, logChange,
   usePepImpedimentos, useAddImpedimento, useToggleImpedimento, useDeleteImpedimento,
-  usePepHistorico,
+  usePepHistorico, useDeletePepHistorico,
   usePepEvidencias, useUploadEvidencia, useDeleteEvidencia, getEvidenciaUrl,
   usePepRiscos, useAddPepRisco, useUpdatePepRisco, useDeletePepRisco,
   usePepSei, useAddPepSei, useDeletePepSei,
@@ -56,8 +58,33 @@ const REF_LABELS: Record<string, string> = {
 
 const ANOS_FIN = ['2025', '2026', '2027', '2028', '2029'] as const
 
+const HIST_ICONS: Record<string, typeof Clock> = {
+  status: Settings2,
+  progresso: BarChart3,
+  impedimento: AlertTriangle,
+  risco: ShieldAlert,
+  processo_sei: FileText,
+  notas: Edit2,
+  resumo_executivo: Edit2,
+  nivel_risco: ShieldAlert,
+  data_inicio_real: Clock,
+  data_fim_previsto: Clock,
+  tipo_aquisicao: Package,
+  metodo_aquisicao: Package,
+}
+
 function isImageFile(name: string) {
   return /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(name)
+}
+
+function getSeverityColor(prob: string, impacto: string): string {
+  const pMap: Record<string, number> = { 'Muito Baixa': 1, 'Baixa': 2, 'Média': 3, 'Alta': 4, 'Muito Alta': 5 }
+  const iMap: Record<string, number> = { 'Muito Baixo': 1, 'Baixo': 2, 'Médio': 3, 'Alto': 4, 'Muito Alto': 5 }
+  const score = (pMap[prob] ?? 3) * (iMap[impacto] ?? 3)
+  if (score >= 16) return 'border-l-4 border-l-red-500'
+  if (score >= 9) return 'border-l-4 border-l-orange-400'
+  if (score >= 4) return 'border-l-4 border-l-yellow-400'
+  return 'border-l-4 border-l-green-400'
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -88,6 +115,7 @@ export default function PEPDetalhePage() {
   const toggleImpedimento = useToggleImpedimento()
   const deleteImpedimento = useDeleteImpedimento()
   const { data: historico = [] } = usePepHistorico(entry?.id)
+  const deleteHistorico = useDeletePepHistorico()
   const { data: evidencias = [] } = usePepEvidencias(decodedWbs)
   const uploadEvidencia = useUploadEvidencia()
   const deleteEvidencia = useDeleteEvidencia()
@@ -356,6 +384,10 @@ export default function PEPDetalhePage() {
     return totalDias > 0 ? Math.round(somaProgresso / totalDias) : 0
   }, [tarefasGantt, gestao?.progresso])
 
+  // Derived data
+  const impedimentosPendentes = useMemo(() => impedimentos.filter(i => !i.resolvido), [impedimentos])
+  const impedimentosResolvidos = useMemo(() => impedimentos.filter(i => i.resolvido), [impedimentos])
+
   if (loadingEntries) {
     return <div className="flex items-center justify-center h-64 text-muted-foreground">Carregando...</div>
   }
@@ -376,20 +408,35 @@ export default function PEPDetalhePage() {
   const riscoCfg = RISCO_MAP[gestao?.nivel_risco ?? 'baixo'] ?? RISCO_MAP.baixo
 
   return (
+    <TooltipProvider>
     <div className="space-y-6">
+      {/* ─── Breadcrumb ────────────────────────────────────────────── */}
+      <nav className="flex items-center gap-1.5 text-xs text-muted-foreground pl-1">
+        <Link to="/pep" className="hover:text-foreground transition-colors">PEP</Link>
+        <ChevronRight className="w-3 h-3" />
+        {entry.ref !== 'C' && (
+          <>
+            <span>Componente {entry.comp}</span>
+            <ChevronRight className="w-3 h-3" />
+          </>
+        )}
+        <span className="text-foreground font-medium">{entry.codigo_wbs}</span>
+      </nav>
+
       {/* ─── Cabeçalho ─────────────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button variant="ghost" size="icon" className="rounded-lg hover:bg-primary/10" onClick={() => navigate('/pep')}>
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <span className="font-mono text-xs gradient-bid text-white px-2.5 py-1 rounded-lg shadow-sm">WBS {entry.codigo_wbs}</span>
             <Badge variant="outline" className="text-xs rounded-full">{REF_LABELS[entry.ref] ?? entry.ref}</Badge>
             <Badge className={cn('text-xs rounded-full', statusCfg.color)}>{statusCfg.label}</Badge>
+            {entry.lote && <Badge variant="secondary" className="text-[10px] rounded-full">Lote {entry.lote}</Badge>}
+            {entry.secretaria && <Badge variant="outline" className="text-[10px] rounded-full">{entry.secretaria}</Badge>}
           </div>
           <h1 className="text-xl font-bold text-foreground pl-10">{entry.descricao ?? 'Sem descrição'}</h1>
-          {entry.secretaria && <p className="text-sm text-muted-foreground pl-10">Secretaria: {entry.secretaria}</p>}
         </div>
         <div className="flex gap-2">
           {editing ? (
@@ -472,25 +519,31 @@ export default function PEPDetalhePage() {
           {/* Painel Financeiro */}
           <Card className="rounded-xl border-0 shadow-sm overflow-hidden">
             <CardHeader className="pb-3 gradient-bid-subtle">
-              <CardTitle className="text-base gradient-bid-text">Painel Financeiro</CardTitle>
+              <CardTitle className="text-base gradient-bid-text flex items-center gap-2">
+                <DollarSign className="w-4 h-4" />
+                Painel Financeiro
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <MiniCard label="BID (USD)" value={fUSD(entry.n_atual)} />
-                <MiniCard label="Local (USD)" value={fUSD(entry.o_atual)} />
-                <MiniCard label="Total (USD)" value={fUSD(entry.p_atual)} />
-                <MiniCard label="Total (BRL)" value={fBRL(entry.m_reais_total)} />
+                <MiniCard label="BID (USD)" value={fUSD(entry.n_atual)} highlight={entry.n_atual === 0} />
+                <MiniCard label="Local (USD)" value={fUSD(entry.o_atual)} highlight={entry.o_atual === 0} />
+                <MiniCard label="Total (USD)" value={fUSD(entry.p_atual)} highlight={entry.p_atual === 0} />
+                <MiniCard label="Total (BRL)" value={fBRL(entry.m_reais_total)} highlight={entry.m_reais_total === 0} />
               </div>
               <Separator />
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-2">Desembolso Previsto por Ano (USD)</p>
                 <div className="grid grid-cols-5 gap-2 text-center">
-                  {ANOS_FIN.map(a => (
-                    <div key={a} className="rounded-xl bg-gradient-to-b from-muted/50 to-muted/20 p-2.5 hover-lift">
-                      <p className="text-[10px] text-muted-foreground">{a}</p>
-                      <p className="text-xs font-semibold">{fUSD((entry as any)[`desembolso_${a}`])}</p>
-                    </div>
-                  ))}
+                  {ANOS_FIN.map(a => {
+                    const val = (entry as any)[`desembolso_${a}`] as number | null
+                    return (
+                      <div key={a} className={cn('rounded-xl p-2.5 transition-all duration-200 hover:shadow-sm', val && val > 0 ? 'bg-gradient-to-b from-primary/10 to-primary/5' : 'bg-gradient-to-b from-muted/50 to-muted/20')}>
+                        <p className="text-[10px] text-muted-foreground">{a}</p>
+                        <p className={cn('text-xs font-semibold', val === 0 || val == null ? 'text-muted-foreground/50' : '')}>{fUSD(val)}</p>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             </CardContent>
@@ -502,7 +555,12 @@ export default function PEPDetalhePage() {
           {/* Gestão da Execução */}
           <Card className="rounded-xl border-0 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Gestão da Execução</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2">
+                <div className={cn('w-6 h-6 rounded-lg flex items-center justify-center', gestao?.status === 'concluido' ? 'bg-green-100 dark:bg-green-900/30' : gestao?.status === 'atrasado' ? 'bg-red-100 dark:bg-red-900/30' : gestao?.status === 'em_execucao' ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-muted')}>
+                  <Settings2 className={cn('w-3.5 h-3.5', gestao?.status === 'concluido' ? 'text-green-600' : gestao?.status === 'atrasado' ? 'text-red-600' : gestao?.status === 'em_execucao' ? 'text-blue-600' : 'text-muted-foreground')} />
+                </div>
+                Gestão da Execução
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {editing ? (
@@ -555,14 +613,14 @@ export default function PEPDetalhePage() {
               ) : (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <InfoField label="Status" value={statusCfg.label} />
-                    <InfoField label="Nível de Risco" value={<Badge className={cn('text-xs rounded-full', riscoCfg.color)}>{riscoCfg.label}</Badge>} />
-                    <InfoField label="Início Real" value={gestao?.data_inicio_real ?? '—'} />
-                    <InfoField label="Prev. Término" value={gestao?.data_fim_previsto ?? '—'} />
+                    <InfoCard label="Status" value={statusCfg.label} />
+                    <InfoCard label="Nível de Risco" value={<Badge className={cn('text-xs rounded-full', riscoCfg.color)}>{riscoCfg.label}</Badge>} />
+                    <InfoCard label="Início Real" value={gestao?.data_inicio_real ?? '—'} />
+                    <InfoCard label="Prev. Término" value={gestao?.data_fim_previsto ?? '—'} />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <InfoField label="Tipo Aquisição" value={entry.tipo_aquisicao ?? '—'} />
-                    <InfoField label="Método Aquisição" value={entry.metodo_aquisicao ?? '—'} />
+                    <InfoCard label="Tipo Aquisição" value={entry.tipo_aquisicao ?? '—'} />
+                    <InfoCard label="Método Aquisição" value={entry.metodo_aquisicao ?? '—'} />
                   </div>
                   {gestao?.notas && (
                     <div>
@@ -579,10 +637,10 @@ export default function PEPDetalhePage() {
           <Card className="rounded-xl border-0 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-yellow-100 to-yellow-50 flex items-center justify-center">
-                  <AlertTriangle className="w-3.5 h-3.5 text-yellow-600" />
+                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-yellow-100 to-yellow-50 dark:from-yellow-900/30 dark:to-yellow-900/10 flex items-center justify-center">
+                  <AlertTriangle className="w-3.5 h-3.5 text-yellow-600 dark:text-yellow-400" />
                 </div>
-                Impedimentos ({impedimentos.filter(i => !i.resolvido).length} abertos)
+                Impedimentos ({impedimentosPendentes.length} abertos)
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -592,24 +650,66 @@ export default function PEPDetalhePage() {
                   <Plus className="w-4 h-4" />
                 </Button>
               </div>
-              {impedimentos.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">Nenhum impedimento registrado</p>}
-              <div className="space-y-1">
-                {impedimentos.map(imp => (
-                  <div key={imp.id} className="flex items-center gap-2 group p-2 rounded-lg hover:bg-muted/30 transition-colors">
-                    <Checkbox
-                      checked={imp.resolvido}
-                      onCheckedChange={checked => entry && toggleImpedimento.mutate({ id: imp.id, resolvido: !!checked, pep_entry_id: entry.id, descricao: imp.descricao })}
-                    />
-                    <span className={cn('text-sm flex-1', imp.resolvido && 'line-through text-muted-foreground')}>{imp.descricao}</span>
-                    <Button
-                      variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 rounded-lg"
-                      onClick={() => entry && deleteImpedimento.mutate({ id: imp.id, pep_entry_id: entry.id, descricao: imp.descricao })}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
+              {impedimentos.length === 0 && (
+                <div className="flex flex-col items-center py-6 text-center">
+                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-2">
+                    <AlertTriangle className="w-5 h-5 text-muted-foreground/50" />
                   </div>
-                ))}
-              </div>
+                  <p className="text-xs text-muted-foreground">Nenhum impedimento registrado</p>
+                </div>
+              )}
+
+              {/* Pendentes */}
+              {impedimentosPendentes.length > 0 && (
+                <div className="space-y-1">
+                  {impedimentosPendentes.map(imp => (
+                    <div key={imp.id} className="flex items-center gap-2 group p-2 rounded-lg hover:bg-muted/30 transition-colors">
+                      <Checkbox
+                        checked={false}
+                        onCheckedChange={checked => entry && toggleImpedimento.mutate({ id: imp.id, resolvido: !!checked, pep_entry_id: entry.id, descricao: imp.descricao })}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm">{imp.descricao}</span>
+                        <p className="text-[10px] text-muted-foreground/50">{new Date(imp.created_at).toLocaleDateString('pt-BR')}</p>
+                      </div>
+                      <Button
+                        variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 rounded-lg"
+                        onClick={() => entry && deleteImpedimento.mutate({ id: imp.id, pep_entry_id: entry.id, descricao: imp.descricao })}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Resolvidos */}
+              {impedimentosResolvidos.length > 0 && (
+                <>
+                  <Separator />
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Resolvidos ({impedimentosResolvidos.length})</p>
+                  <div className="space-y-1">
+                    {impedimentosResolvidos.map(imp => (
+                      <div key={imp.id} className="flex items-center gap-2 group p-2 rounded-lg hover:bg-muted/20 transition-colors opacity-60">
+                        <Checkbox
+                          checked={true}
+                          onCheckedChange={checked => entry && toggleImpedimento.mutate({ id: imp.id, resolvido: !!checked, pep_entry_id: entry.id, descricao: imp.descricao })}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm line-through text-muted-foreground">{imp.descricao}</span>
+                          <p className="text-[10px] text-muted-foreground/50">{new Date(imp.created_at).toLocaleDateString('pt-BR')}</p>
+                        </div>
+                        <Button
+                          variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 rounded-lg"
+                          onClick={() => entry && deleteImpedimento.mutate({ id: imp.id, pep_entry_id: entry.id, descricao: imp.descricao })}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -656,7 +756,12 @@ export default function PEPDetalhePage() {
                 </div>
               )}
               {pepSei.length === 0 && !showSeiForm && (
-                <p className="text-xs text-muted-foreground text-center py-2">Nenhum processo SEI vinculado</p>
+                <div className="flex flex-col items-center py-6 text-center">
+                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-2">
+                    <FileText className="w-5 h-5 text-muted-foreground/50" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Nenhum processo SEI vinculado</p>
+                </div>
               )}
               <div className="space-y-1">
                 {pepSei.map(sei => (
@@ -685,6 +790,7 @@ export default function PEPDetalhePage() {
             </CardContent>
           </Card>
 
+          {/* Riscos */}
           <Card className="rounded-xl border-0 shadow-sm">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -777,7 +883,12 @@ export default function PEPDetalhePage() {
 
               {/* Lista de riscos */}
               {pepRiscos.length === 0 && !showRiscoForm && !vinculandoRisco && (
-                <p className="text-xs text-muted-foreground text-center py-2">Nenhum risco registrado</p>
+                <div className="flex flex-col items-center py-6 text-center">
+                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-2">
+                    <ShieldAlert className="w-5 h-5 text-muted-foreground/50" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Nenhum risco registrado</p>
+                </div>
               )}
               <div className="space-y-2">
                 {pepRiscos.map(risco => {
@@ -852,7 +963,7 @@ export default function PEPDetalhePage() {
                   }
 
                   return (
-                    <div key={risco.id} className={cn('group p-3 rounded-lg border transition-all duration-200 hover:shadow-sm', risco.status === 'Ativo' ? 'border-border/60 bg-background' : 'border-border/30 bg-muted/20 opacity-60')}>
+                    <div key={risco.id} className={cn('group p-3 rounded-lg border transition-all duration-200 hover:shadow-sm', risco.status === 'Ativo' ? 'border-border/60 bg-background' : 'border-border/30 bg-muted/20 opacity-60', risco.status === 'Ativo' && getSeverityColor(risco.probabilidade, risco.impacto))}>
                       <div className="flex items-start gap-2">
                         <button onClick={() => handleToggleRiscoStatus(risco)} className="mt-0.5">
                           <ShieldAlert className={cn('w-4 h-4', risco.status === 'Ativo' ? 'text-red-500' : 'text-muted-foreground')} />
@@ -889,10 +1000,16 @@ export default function PEPDetalhePage() {
             </CardContent>
           </Card>
 
-
+          {/* Evidências */}
           <Card className="rounded-xl border-0 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Repositório de Evidências</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-100 to-purple-50 dark:from-purple-900/30 dark:to-purple-900/10 flex items-center justify-center">
+                  <FolderOpen className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                </div>
+                Repositório de Evidências
+                {evidencias.length > 0 && <Badge variant="secondary" className="text-[10px] rounded-full ml-1">{evidencias.length}</Badge>}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div
@@ -957,7 +1074,11 @@ export default function PEPDetalhePage() {
                 </div>
               )}
 
-              {evidencias.length === 0 && <p className="text-xs text-muted-foreground text-center">Nenhum arquivo enviado</p>}
+              {evidencias.length === 0 && (
+                <div className="flex flex-col items-center py-4 text-center">
+                  <p className="text-xs text-muted-foreground">Nenhum arquivo enviado</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -967,7 +1088,12 @@ export default function PEPDetalhePage() {
           {children.length > 0 && (
             <Card className="rounded-xl border-0 shadow-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Subatividades ({children.length})</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-100 to-indigo-50 dark:from-indigo-900/30 dark:to-indigo-900/10 flex items-center justify-center">
+                    <Package className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  Subatividades ({children.length})
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-1 max-h-64 overflow-y-auto custom-scrollbar">
@@ -990,7 +1116,12 @@ export default function PEPDetalhePage() {
 
           <Card className="rounded-xl border-0 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Entregas Físicas</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/30 dark:to-emerald-900/10 flex items-center justify-center">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                Entregas Físicas
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-3 gap-2 text-center">
@@ -998,9 +1129,13 @@ export default function PEPDetalhePage() {
                   const key = `fisica_${a}` as keyof PepEntry
                   const val = (entry as any)[key] as number | null
                   return (
-                    <div key={a} className={cn('rounded-xl p-2 transition-colors', val === 1 ? 'bg-gradient-to-br from-green-100 to-green-50 dark:from-green-900/30 dark:to-green-900/10' : 'bg-muted/20')}>
-                      <p className="text-[10px] text-muted-foreground">{a === 'eop' ? 'EOP' : a}</p>
-                      <p className="text-xs font-semibold">{val === 1 ? '✓' : '—'}</p>
+                    <div key={a} className={cn('rounded-xl p-2.5 transition-all duration-200', val === 1 ? 'bg-gradient-to-br from-green-100 to-green-50 dark:from-green-900/30 dark:to-green-900/10 shadow-sm' : 'bg-muted/20')}>
+                      <p className="text-[10px] text-muted-foreground font-medium">{a === 'eop' ? 'EOP' : a}</p>
+                      {val === 1 ? (
+                        <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 mx-auto mt-0.5" />
+                      ) : (
+                        <p className="text-xs text-muted-foreground/40 mt-0.5">—</p>
+                      )}
                     </div>
                   )
                 })}
@@ -1011,13 +1146,21 @@ export default function PEPDetalhePage() {
           <Card className="rounded-xl border-0 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <Clock className="w-4 h-4 text-primary" />
+                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800/30 dark:to-slate-800/10 flex items-center justify-center">
+                  <History className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
+                </div>
                 Histórico de Alterações
+                {historico.length > 0 && <Badge variant="secondary" className="text-[10px] rounded-full ml-1">{historico.length}</Badge>}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {historico.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-2">Nenhuma alteração registrada</p>
+                <div className="flex flex-col items-center py-6 text-center">
+                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-2">
+                    <History className="w-5 h-5 text-muted-foreground/50" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Nenhuma alteração registrada</p>
+                </div>
               ) : (
                 <div className="space-y-1 max-h-80 overflow-y-auto custom-scrollbar">
                   {historico.map(h => {
@@ -1025,20 +1168,48 @@ export default function PEPDetalhePage() {
                     const dataStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
                     const anterior = h.valor_anterior?.trim()
                     const novo = h.valor_novo?.trim()
-                    const hasAnterior = !!anterior
-                    const hasNovo = !!novo
-
                     const resumo = diffWords(anterior, novo)
+                    const HistIcon = HIST_ICONS[h.campo] ?? Clock
 
                     return (
-                      <div key={h.id} className="text-xs border-l-2 border-primary/20 pl-3 py-1 hover:bg-muted/20 rounded-r-lg transition-colors">
-                        <p className="text-muted-foreground">
-                          <span className="text-muted-foreground/60">{dataStr}</span>
-                          {' — '}
-                          <span className="font-medium text-foreground">{h.campo}</span>
-                          {': '}
-                          {resumo}
-                        </p>
+                      <div key={h.id} className="group flex items-start gap-2 text-xs py-1.5 px-2 rounded-lg hover:bg-muted/20 transition-colors">
+                        <HistIcon className="w-3 h-3 text-muted-foreground/60 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-muted-foreground">
+                            <span className="text-muted-foreground/50">{dataStr}</span>
+                            {' — '}
+                            <span className="font-medium text-foreground">{h.campo}</span>
+                            {': '}
+                            {resumo}
+                          </p>
+                        </div>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost" size="icon"
+                              className="h-5 w-5 opacity-0 group-hover:opacity-100 rounded flex-shrink-0 text-muted-foreground hover:text-destructive"
+                            >
+                              <Trash2 className="w-2.5 h-2.5" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir registro do histórico?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta ação não pode ser desfeita. O registro de alteração em "{h.campo}" será removido permanentemente.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                onClick={() => entry && deleteHistorico.mutate({ id: h.id, pep_entry_id: entry.id })}
+                              >
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     )
                   })}
@@ -1056,22 +1227,23 @@ export default function PEPDetalhePage() {
         </DialogContent>
       </Dialog>
     </div>
+    </TooltipProvider>
   )
 }
 
 // ─── Helper components ────────────────────────────────────────────────────────
-function MiniCard({ label, value }: { label: string; value: string }) {
+function MiniCard({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className="rounded-xl bg-gradient-to-b from-muted/40 to-muted/10 p-3 hover-lift">
+    <div className={cn('rounded-xl p-3 transition-all duration-200 hover:shadow-sm', highlight ? 'bg-gradient-to-b from-muted/20 to-muted/5' : 'bg-gradient-to-b from-muted/40 to-muted/10')}>
       <p className="text-[10px] text-muted-foreground">{label}</p>
-      <p className="text-sm font-semibold">{value}</p>
+      <p className={cn('text-sm font-semibold', highlight && 'text-muted-foreground/50')}>{value}</p>
     </div>
   )
 }
 
-function InfoField({ label, value }: { label: string; value: React.ReactNode }) {
+function InfoCard({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div>
+    <div className="rounded-xl bg-muted/20 p-3">
       <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
       <div className="text-sm font-medium mt-0.5">{value}</div>
     </div>
