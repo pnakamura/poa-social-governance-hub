@@ -1009,7 +1009,15 @@ export default function PEPPage() {
 
   const queryClient = useQueryClient()
   const { data: versoes = [] } = usePEPVersoes()
-  const { data: entries = [], isLoading } = usePEPEntries(versao)
+  const { data: allEntries = [], isLoading } = usePEPEntries(versao)
+  const { data: hiddenIds = [] } = useHiddenPepIds()
+
+  // Filter out hidden entries
+  const entries = useMemo(() => {
+    if (hiddenIds.length === 0) return allEntries
+    const hiddenSet = new Set(hiddenIds)
+    return allEntries.filter(e => !hiddenSet.has(e.id))
+  }, [allEntries, hiddenIds])
 
   // Derive secretaria list from PT entries
   const secretarias = useMemo(() =>
