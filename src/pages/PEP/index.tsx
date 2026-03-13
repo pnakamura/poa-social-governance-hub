@@ -1279,6 +1279,7 @@ export default function PEPPage() {
             isLoading={isLoading}
             moeda={moeda}
             onSelectEntry={handleSelectEntry}
+            hiddenIds={showHidden ? hiddenSet : undefined}
           />
         </TabsContent>
 
