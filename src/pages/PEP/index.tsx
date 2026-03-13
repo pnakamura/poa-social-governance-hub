@@ -547,6 +547,7 @@ function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry, hi
                         row.ref === 'P' && 'bg-muted/20',
                         isPT && 'text-muted-foreground',
                         highlighted && 'bg-yellow-50 dark:bg-yellow-900/20',
+                        isHidden && 'opacity-40',
                       )}
                       onClick={() => onSelectEntry(row)}
                     >
