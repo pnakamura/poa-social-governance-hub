@@ -598,12 +598,12 @@ export default function PEPDetalhePage() {
                   <div key={imp.id} className="flex items-center gap-2 group p-2 rounded-lg hover:bg-muted/30 transition-colors">
                     <Checkbox
                       checked={imp.resolvido}
-                      onCheckedChange={checked => entry && toggleImpedimento.mutate({ id: imp.id, resolvido: !!checked, pep_entry_id: entry.id })}
+                      onCheckedChange={checked => entry && toggleImpedimento.mutate({ id: imp.id, resolvido: !!checked, pep_entry_id: entry.id, descricao: imp.descricao })}
                     />
                     <span className={cn('text-sm flex-1', imp.resolvido && 'line-through text-muted-foreground')}>{imp.descricao}</span>
                     <Button
                       variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 rounded-lg"
-                      onClick={() => entry && deleteImpedimento.mutate({ id: imp.id, pep_entry_id: entry.id })}
+                      onClick={() => entry && deleteImpedimento.mutate({ id: imp.id, pep_entry_id: entry.id, descricao: imp.descricao })}
                     >
                       <Trash2 className="w-3 h-3" />
                     </Button>
@@ -675,7 +675,7 @@ export default function PEPDetalhePage() {
                     )}
                     <Button
                       variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 rounded-lg"
-                      onClick={() => entry && deletePepSei.mutate({ id: sei.id, pep_entry_id: entry.id })}
+                      onClick={() => entry && deletePepSei.mutate({ id: sei.id, pep_entry_id: entry.id, numero: sei.numero_processo })}
                     >
                       <Trash2 className="w-3 h-3" />
                     </Button>
@@ -876,7 +876,7 @@ export default function PEPDetalhePage() {
                           </Button>
                           <Button
                             variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 rounded-lg"
-                            onClick={() => entry && deletePepRisco.mutate({ id: risco.id, pep_entry_id: entry.id })}
+                            onClick={() => entry && deletePepRisco.mutate({ id: risco.id, pep_entry_id: entry.id, titulo: risco.titulo_risco })}
                           >
                             <Trash2 className="w-3 h-3" />
                           </Button>

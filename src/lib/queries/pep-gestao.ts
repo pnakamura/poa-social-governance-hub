@@ -118,32 +118,45 @@ export const useAddImpedimento = () => {
     mutationFn: async (payload: { pep_entry_id: string; descricao: string }) => {
       const { error } = await supabase.from('pep_impedimentos').insert(payload)
       if (error) throw error
+      await logChange(payload.pep_entry_id, 'impedimento', null, payload.descricao)
     },
-    onSuccess: (_, v) => qc.invalidateQueries({ queryKey: ['pep_impedimentos', v.pep_entry_id] }),
+    onSuccess: (_, v) => {
+      qc.invalidateQueries({ queryKey: ['pep_impedimentos', v.pep_entry_id] })
+      qc.invalidateQueries({ queryKey: ['pep_historico', v.pep_entry_id] })
+    },
   })
 }
 
 export const useToggleImpedimento = () => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, resolvido, pep_entry_id }: { id: string; resolvido: boolean; pep_entry_id: string }) => {
+    mutationFn: async ({ id, resolvido, pep_entry_id, descricao }: { id: string; resolvido: boolean; pep_entry_id: string; descricao?: string }) => {
       const { error } = await supabase.from('pep_impedimentos').update({ resolvido }).eq('id', id)
       if (error) throw error
+      const label = descricao ? `"${descricao}"` : id
+      await logChange(pep_entry_id, 'impedimento', resolvido ? 'pendente' : 'resolvido', resolvido ? `${label} — Resolvido` : `${label} — Reaberto`)
       return pep_entry_id
     },
-    onSuccess: (eid) => qc.invalidateQueries({ queryKey: ['pep_impedimentos', eid] }),
+    onSuccess: (eid) => {
+      qc.invalidateQueries({ queryKey: ['pep_impedimentos', eid] })
+      qc.invalidateQueries({ queryKey: ['pep_historico', eid] })
+    },
   })
 }
 
 export const useDeleteImpedimento = () => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, pep_entry_id }: { id: string; pep_entry_id: string }) => {
+    mutationFn: async ({ id, pep_entry_id, descricao }: { id: string; pep_entry_id: string; descricao?: string }) => {
       const { error } = await supabase.from('pep_impedimentos').delete().eq('id', id)
       if (error) throw error
+      await logChange(pep_entry_id, 'impedimento', descricao ?? id, null)
       return pep_entry_id
     },
-    onSuccess: (eid) => qc.invalidateQueries({ queryKey: ['pep_impedimentos', eid] }),
+    onSuccess: (eid) => {
+      qc.invalidateQueries({ queryKey: ['pep_impedimentos', eid] })
+      qc.invalidateQueries({ queryKey: ['pep_historico', eid] })
+    },
   })
 }
 
@@ -233,8 +246,12 @@ export const useAddPepRisco = () => {
     mutationFn: async (payload: { pep_entry_id: string; titulo_risco: string; probabilidade: string; impacto: string; mitigacao?: string; risco_global_id?: string }) => {
       const { error } = await supabase.from('pep_riscos').insert(payload as any)
       if (error) throw error
+      await logChange(payload.pep_entry_id, 'risco', null, payload.titulo_risco)
     },
-    onSuccess: (_, v) => qc.invalidateQueries({ queryKey: ['pep_riscos', v.pep_entry_id] }),
+    onSuccess: (_, v) => {
+      qc.invalidateQueries({ queryKey: ['pep_riscos', v.pep_entry_id] })
+      qc.invalidateQueries({ queryKey: ['pep_historico', v.pep_entry_id] })
+    },
   })
 }
 
@@ -244,21 +261,30 @@ export const useUpdatePepRisco = () => {
     mutationFn: async ({ id, pep_entry_id, ...updates }: { id: string; pep_entry_id: string } & Partial<PepRisco>) => {
       const { error } = await supabase.from('pep_riscos').update(updates as any).eq('id', id)
       if (error) throw error
+      const changes = Object.entries(updates).map(([k, v]) => `${k}: ${v}`).join(', ')
+      await logChange(pep_entry_id, 'risco', null, `Atualizado — ${changes}`)
       return pep_entry_id
     },
-    onSuccess: (eid) => qc.invalidateQueries({ queryKey: ['pep_riscos', eid] }),
+    onSuccess: (eid) => {
+      qc.invalidateQueries({ queryKey: ['pep_riscos', eid] })
+      qc.invalidateQueries({ queryKey: ['pep_historico', eid] })
+    },
   })
 }
 
 export const useDeletePepRisco = () => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, pep_entry_id }: { id: string; pep_entry_id: string }) => {
+    mutationFn: async ({ id, pep_entry_id, titulo }: { id: string; pep_entry_id: string; titulo?: string }) => {
       const { error } = await supabase.from('pep_riscos').delete().eq('id', id)
       if (error) throw error
+      await logChange(pep_entry_id, 'risco', titulo ?? id, null)
       return pep_entry_id
     },
-    onSuccess: (eid) => qc.invalidateQueries({ queryKey: ['pep_riscos', eid] }),
+    onSuccess: (eid) => {
+      qc.invalidateQueries({ queryKey: ['pep_riscos', eid] })
+      qc.invalidateQueries({ queryKey: ['pep_historico', eid] })
+    },
   })
 }
 
@@ -326,20 +352,28 @@ export const useAddPepSei = () => {
     mutationFn: async (payload: { pep_entry_id: string; numero_processo: string; url?: string; descricao?: string }) => {
       const { error } = await supabase.from('pep_sei').insert(payload)
       if (error) throw error
+      await logChange(payload.pep_entry_id, 'processo_sei', null, payload.numero_processo)
       return payload.pep_entry_id
     },
-    onSuccess: (eid) => qc.invalidateQueries({ queryKey: ['pep_sei', eid] }),
+    onSuccess: (eid) => {
+      qc.invalidateQueries({ queryKey: ['pep_sei', eid] })
+      qc.invalidateQueries({ queryKey: ['pep_historico', eid] })
+    },
   })
 }
 
 export const useDeletePepSei = () => {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, pep_entry_id }: { id: string; pep_entry_id: string }) => {
+    mutationFn: async ({ id, pep_entry_id, numero }: { id: string; pep_entry_id: string; numero?: string }) => {
       const { error } = await supabase.from('pep_sei').delete().eq('id', id)
       if (error) throw error
+      await logChange(pep_entry_id, 'processo_sei', numero ?? id, null)
       return pep_entry_id
     },
-    onSuccess: (eid) => qc.invalidateQueries({ queryKey: ['pep_sei', eid] }),
+    onSuccess: (eid) => {
+      qc.invalidateQueries({ queryKey: ['pep_sei', eid] })
+      qc.invalidateQueries({ queryKey: ['pep_historico', eid] })
+    },
   })
 }
