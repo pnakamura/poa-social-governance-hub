@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Edit2, Save, X, Plus, Trash2, Download, Upload, Image as ImageIcon, FileText, Clock, AlertTriangle, ChevronRight, Camera, ShieldAlert, Link2, Pencil, ExternalLink, DollarSign, Settings2, CheckCircle2, BarChart3, FolderOpen, History, Package } from 'lucide-react'
+import { ArrowLeft, Edit2, Save, X, Plus, Trash2, Download, Upload, Image as ImageIcon, FileText, Clock, AlertTriangle, ChevronRight, Camera, ShieldAlert, Link2, Pencil, ExternalLink, DollarSign, Settings2, CheckCircle2, BarChart3, FolderOpen, History, Package, Eye, EyeOff } from 'lucide-react'
 import PepGanttChart from '@/components/PepGanttChart'
 import { usePepTarefas } from '@/lib/queries/pep-tarefas'
 import logoPoaSocial from '@/assets/logo-poa-social.png'
@@ -435,6 +435,31 @@ export default function PEPDetalhePage() {
             <Badge className={cn('text-xs rounded-full', statusCfg.color)}>{statusCfg.label}</Badge>
             {entry.lote && <Badge variant="secondary" className="text-[10px] rounded-full">Lote {entry.lote}</Badge>}
             {entry.secretaria && <Badge variant="outline" className="text-[10px] rounded-full">{entry.secretaria}</Badge>}
+            {/* Toggle visibilidade na página /pep */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className={cn(
+                    'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors cursor-pointer border',
+                    (gestao?.visivel_pep ?? true)
+                      ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800'
+                      : 'bg-muted text-muted-foreground border-border'
+                  )}
+                  onClick={() => {
+                    if (!entry) return
+                    const newVal = !(gestao?.visivel_pep ?? true)
+                    upsertGestao.mutate(
+                      { pep_entry_id: entry.id, visivel_pep: newVal },
+                      { onSuccess: () => toast.success(newVal ? 'Item visível no PEP' : 'Item oculto no PEP') }
+                    )
+                  }}
+                >
+                  {(gestao?.visivel_pep ?? true) ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                  {(gestao?.visivel_pep ?? true) ? 'Visível' : 'Oculto'}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Controla se este item aparece na página PEP</TooltipContent>
+            </Tooltip>
           </div>
           <h1 className="text-xl font-bold text-foreground pl-10">{entry.descricao ?? 'Sem descrição'}</h1>
         </div>

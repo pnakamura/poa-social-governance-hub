@@ -1,0 +1,1 @@
+ALTER TABLE pep_gestao ADD COLUMN visivel_pep boolean NOT NULL DEFAULT true;
