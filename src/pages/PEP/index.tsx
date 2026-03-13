@@ -19,6 +19,7 @@ import { supabase } from '@/lib/supabase'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Legend,
 } from 'recharts'
+import { useHiddenPepIds } from '@/lib/queries/pep-gestao'
 
 // ─── Formatadores ─────────────────────────────────────────────────────────────
 const fUSD = (v: number | null | undefined) =>
