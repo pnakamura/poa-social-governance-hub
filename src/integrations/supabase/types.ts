@@ -281,6 +281,164 @@ export type Database = {
         }
         Relationships: []
       }
+      demandas: {
+        Row: {
+          contexto_original: string | null
+          created_at: string | null
+          data_fonte: string | null
+          descricao: string | null
+          extraido_por_ia: boolean | null
+          fonte_descricao: string | null
+          fonte_tipo: string | null
+          id: string
+          inbox_captura_id: string | null
+          prazo: string | null
+          prioridade: string
+          projeto: string | null
+          responsavel: string | null
+          status: string
+          tipo: string
+          titulo: string
+          updated_at: string | null
+          vinculo_pep_wbs: string | null
+          vinculo_risco_id: string | null
+        }
+        Insert: {
+          contexto_original?: string | null
+          created_at?: string | null
+          data_fonte?: string | null
+          descricao?: string | null
+          extraido_por_ia?: boolean | null
+          fonte_descricao?: string | null
+          fonte_tipo?: string | null
+          id?: string
+          inbox_captura_id?: string | null
+          prazo?: string | null
+          prioridade?: string
+          projeto?: string | null
+          responsavel?: string | null
+          status?: string
+          tipo?: string
+          titulo: string
+          updated_at?: string | null
+          vinculo_pep_wbs?: string | null
+          vinculo_risco_id?: string | null
+        }
+        Update: {
+          contexto_original?: string | null
+          created_at?: string | null
+          data_fonte?: string | null
+          descricao?: string | null
+          extraido_por_ia?: boolean | null
+          fonte_descricao?: string | null
+          fonte_tipo?: string | null
+          id?: string
+          inbox_captura_id?: string | null
+          prazo?: string | null
+          prioridade?: string
+          projeto?: string | null
+          responsavel?: string | null
+          status?: string
+          tipo?: string
+          titulo?: string
+          updated_at?: string | null
+          vinculo_pep_wbs?: string | null
+          vinculo_risco_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demandas_inbox_captura_id_fkey"
+            columns: ["inbox_captura_id"]
+            isOneToOne: false
+            referencedRelation: "inbox_capturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandas_vinculo_risco_id_fkey"
+            columns: ["vinculo_risco_id"]
+            isOneToOne: false
+            referencedRelation: "riscos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      demandas_historico: {
+        Row: {
+          campo: string
+          created_at: string | null
+          demanda_id: string
+          id: string
+          usuario: string | null
+          valor_anterior: string | null
+          valor_novo: string | null
+        }
+        Insert: {
+          campo: string
+          created_at?: string | null
+          demanda_id: string
+          id?: string
+          usuario?: string | null
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Update: {
+          campo?: string
+          created_at?: string | null
+          demanda_id?: string
+          id?: string
+          usuario?: string | null
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demandas_historico_demanda_id_fkey"
+            columns: ["demanda_id"]
+            isOneToOne: false
+            referencedRelation: "demandas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inbox_capturas: {
+        Row: {
+          autor_fonte: string | null
+          created_at: string | null
+          data_fonte: string | null
+          demandas_geradas: number | null
+          id: string
+          processado: boolean | null
+          projeto: string | null
+          texto_bruto: string
+          tipo_fonte: string
+          titulo: string | null
+        }
+        Insert: {
+          autor_fonte?: string | null
+          created_at?: string | null
+          data_fonte?: string | null
+          demandas_geradas?: number | null
+          id?: string
+          processado?: boolean | null
+          projeto?: string | null
+          texto_bruto: string
+          tipo_fonte: string
+          titulo?: string | null
+        }
+        Update: {
+          autor_fonte?: string | null
+          created_at?: string | null
+          data_fonte?: string | null
+          demandas_geradas?: number | null
+          id?: string
+          processado?: boolean | null
+          projeto?: string | null
+          texto_bruto?: string
+          tipo_fonte?: string
+          titulo?: string | null
+        }
+        Relationships: []
+      }
       marcos: {
         Row: {
           area: string | null
