@@ -876,7 +876,7 @@ export default function PEPDetalhePage() {
                           </Button>
                           <Button
                             variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 rounded-lg"
-                            onClick={() => entry && deletePepRisco.mutate({ id: risco.id, pep_entry_id: entry.id })}
+                            onClick={() => entry && deletePepRisco.mutate({ id: risco.id, pep_entry_id: entry.id, titulo: risco.titulo_risco })}
                           >
                             <Trash2 className="w-3 h-3" />
                           </Button>
