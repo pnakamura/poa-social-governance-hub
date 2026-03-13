@@ -178,6 +178,20 @@ export const usePepHistorico = (entryId: string | undefined) =>
     enabled: !!entryId,
   })
 
+export const useDeletePepHistorico = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, pep_entry_id }: { id: string; pep_entry_id: string }) => {
+      const { error } = await supabase.from('pep_historico').delete().eq('id', id)
+      if (error) throw error
+      return pep_entry_id
+    },
+    onSuccess: (eid) => {
+      qc.invalidateQueries({ queryKey: ['pep_historico', eid] })
+    },
+  })
+}
+
 // ─── Evidências (Storage) ─────────────────────────────────────────────────────
 const BUCKET = 'pep-evidencias'
 
