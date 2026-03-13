@@ -575,6 +575,7 @@ function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry, hi
                           <span className={cn('truncate max-w-[260px]', isC && 'text-primary')} title={row.descricao ?? ''}>
                             {row.descricao}
                           </span>
+                          {isHidden && <EyeOff className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
                         </div>
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums">{f(vals.bid)}</td>
