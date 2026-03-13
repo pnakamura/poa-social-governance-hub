@@ -292,11 +292,12 @@ function DetailPanel({ entry, onClose, moeda }: { entry: PepEntry | null; onClos
 }
 
 // ─── Tab 1: Hierarquia ────────────────────────────────────────────────────────
-function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry }: {
+function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry, hiddenIds }: {
   entries: PepEntry[]
   isLoading: boolean
   moeda: 'USD' | 'BRL'
   onSelectEntry: (e: PepEntry) => void
+  hiddenIds?: Set<string>
 }) {
   const [search, setSearch] = useState('')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
