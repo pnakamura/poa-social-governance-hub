@@ -10,7 +10,7 @@ import { NAV_GROUPS, PROTECTED_ROUTES } from '@/config/nav-items'
 import { useMenuVisibility } from '@/hooks/useMenuVisibility'
 import { toast } from 'sonner'
 
-const SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1XRIb1og8sphXhOtdkbOd8U1G3OuL8508'
+const SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1zk6KJCvbr7HKlDYIAIDKDBCyZ_rR3ZW2Kck1gYqrQyY'
 
 export default function Settings() {
   const qc = useQueryClient()
