@@ -3,7 +3,7 @@ import {
   AlertTriangle, ListChecks, MessageSquareWarning,
   FileText, Settings, TrendingUp,
   CheckSquare, Calendar, AlertOctagon, ShoppingCart, Tag, Brain, Radar,
-  ShieldCheck, LineChart, BookOpen,
+  ShieldCheck, LineChart, BookOpen, Inbox,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -42,6 +42,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: '/marcos', icon: Calendar, label: 'Timeline' },
       { to: '/atividades', icon: ListChecks, label: 'Atividades' },
+      { to: '/demandas', icon: Inbox, label: 'Demandas & Ações' },
       { to: '/riscos', icon: AlertTriangle, label: 'Riscos' },
       { to: '/pontos-atencao', icon: AlertOctagon, label: 'Pontos de Atenção' },
       { to: '/temas', icon: Tag, label: 'Temas' },
