@@ -1000,6 +1000,7 @@ function PMRTab({ pepEntries }: { pepEntries: PepEntry[] }) {
 // ─── Página Principal ─────────────────────────────────────────────────────────
 export default function PEPPage() {
   const [versao, setVersao] = useState('v2')
+  const [showHidden, setShowHidden] = useState(false)
   const [moeda, setMoeda] = useState<'USD' | 'BRL'>('USD')
   const [filtroSecretaria, setFiltroSecretaria] = useState('todos')
   const [filtroLote, setFiltroLote] = useState('todos')
