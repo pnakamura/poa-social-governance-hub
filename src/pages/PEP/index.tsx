@@ -1167,6 +1167,7 @@ export default function PEPPage() {
             </Button>
           )}
 
+          <div className="flex rounded-md border border-border overflow-hidden text-xs">
             <button
               className={cn('px-3 py-1.5 transition-colors', moeda === 'USD' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}
               onClick={() => setMoeda('USD')}
