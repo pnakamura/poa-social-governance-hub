@@ -1013,12 +1013,12 @@ export default function PEPPage() {
   const { data: allEntries = [], isLoading } = usePEPEntries(versao)
   const { data: hiddenIds = [] } = useHiddenPepIds()
 
-  // Filter out hidden entries
+  // Filter out hidden entries (unless showHidden is active)
+  const hiddenSet = useMemo(() => new Set(hiddenIds), [hiddenIds])
   const entries = useMemo(() => {
-    if (hiddenIds.length === 0) return allEntries
-    const hiddenSet = new Set(hiddenIds)
+    if (showHidden || hiddenIds.length === 0) return allEntries
     return allEntries.filter(e => !hiddenSet.has(e.id))
-  }, [allEntries, hiddenIds])
+  }, [allEntries, hiddenIds, hiddenSet, showHidden])
 
   // Derive secretaria list from PT entries
   const secretarias = useMemo(() =>
