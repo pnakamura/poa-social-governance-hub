@@ -107,11 +107,115 @@ export type Database = {
         }
         Relationships: []
       }
+      atividade_alertas: {
+        Row: {
+          atividade_id: string
+          criado_em: string | null
+          id: string
+          mensagem: string
+          resolvido: boolean | null
+          tipo: string
+        }
+        Insert: {
+          atividade_id: string
+          criado_em?: string | null
+          id?: string
+          mensagem: string
+          resolvido?: boolean | null
+          tipo?: string
+        }
+        Update: {
+          atividade_id?: string
+          criado_em?: string | null
+          id?: string
+          mensagem?: string
+          resolvido?: boolean | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atividade_alertas_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "atividades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atividade_checklist: {
+        Row: {
+          atividade_id: string
+          concluido: boolean | null
+          criado_em: string | null
+          id: string
+          ordem: number | null
+          texto: string
+        }
+        Insert: {
+          atividade_id: string
+          concluido?: boolean | null
+          criado_em?: string | null
+          id?: string
+          ordem?: number | null
+          texto: string
+        }
+        Update: {
+          atividade_id?: string
+          concluido?: boolean | null
+          criado_em?: string | null
+          id?: string
+          ordem?: number | null
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atividade_checklist_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "atividades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atividade_comentarios: {
+        Row: {
+          atividade_id: string
+          autor: string | null
+          criado_em: string | null
+          id: string
+          texto: string
+        }
+        Insert: {
+          atividade_id: string
+          autor?: string | null
+          criado_em?: string | null
+          id?: string
+          texto: string
+        }
+        Update: {
+          atividade_id?: string
+          autor?: string | null
+          criado_em?: string | null
+          id?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atividade_comentarios_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "atividades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atividades: {
         Row: {
           atualizado_em: string | null
           componente: string | null
+          cor: string | null
           criado_em: string | null
+          descricao: string | null
           id: string
           prazo: string | null
           prioridade: string | null
@@ -123,7 +227,9 @@ export type Database = {
         Insert: {
           atualizado_em?: string | null
           componente?: string | null
+          cor?: string | null
           criado_em?: string | null
+          descricao?: string | null
           id?: string
           prazo?: string | null
           prioridade?: string | null
@@ -135,7 +241,9 @@ export type Database = {
         Update: {
           atualizado_em?: string | null
           componente?: string | null
+          cor?: string | null
           criado_em?: string | null
+          descricao?: string | null
           id?: string
           prazo?: string | null
           prioridade?: string | null
@@ -143,6 +251,33 @@ export type Database = {
           responsavel?: string | null
           status?: string | null
           titulo?: string
+        }
+        Relationships: []
+      }
+      chat_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          messages: Json
+          title: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          messages?: Json
+          title?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          messages?: Json
+          title?: string | null
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -590,6 +725,41 @@ export type Database = {
           },
         ]
       }
+      pep_sei: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          numero_processo: string
+          pep_entry_id: string
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          numero_processo: string
+          pep_entry_id: string
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          numero_processo?: string
+          pep_entry_id?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pep_sei_pep_entry_id_fkey"
+            columns: ["pep_entry_id"]
+            isOneToOne: false
+            referencedRelation: "pep_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pmr_outcomes: {
         Row: {
           codigo: string | null
@@ -883,6 +1053,80 @@ export type Database = {
           },
         ]
       }
+      rag_chunks: {
+        Row: {
+          chunk_index: number
+          content: string
+          created_at: string
+          document_id: string
+          embedding: string | null
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          chunk_index?: number
+          content: string
+          created_at?: string
+          document_id: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          created_at?: string
+          document_id?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rag_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "rag_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rag_documents: {
+        Row: {
+          chunk_count: number | null
+          content_hash: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          source_type: string
+          source_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          chunk_count?: number | null
+          content_hash?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          source_type?: string
+          source_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          chunk_count?: number | null
+          content_hash?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          source_type?: string
+          source_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       recomendacoes: {
         Row: {
           componente: string | null
@@ -917,6 +1161,7 @@ export type Database = {
         Row: {
           atualizado_em: string | null
           categoria: string
+          componente: string | null
           criado_em: string | null
           descricao: string
           id: string
@@ -931,6 +1176,7 @@ export type Database = {
         Insert: {
           atualizado_em?: string | null
           categoria: string
+          componente?: string | null
           criado_em?: string | null
           descricao: string
           id?: string
@@ -945,6 +1191,7 @@ export type Database = {
         Update: {
           atualizado_em?: string | null
           categoria?: string
+          componente?: string | null
           criado_em?: string | null
           descricao?: string
           id?: string
@@ -1383,6 +1630,20 @@ export type Database = {
         Returns: undefined
       }
       is_admin_or_gestor: { Args: { _user_id: string }; Returns: boolean }
+      match_chunks: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          content: string
+          document_id: string
+          id: string
+          metadata: Json
+          similarity: number
+        }[]
+      }
       user_can_access_risk: {
         Args: { _risco_id: string; _user_id: string }
         Returns: boolean

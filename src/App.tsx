@@ -51,6 +51,7 @@ import Aquisicoes from '@/pages/Aquisicoes'
 import Temas from '@/pages/Temas'
 import Monitoramento from '@/pages/Monitoramento'
 import Qualidade from '@/pages/Qualidade'
+import Conhecimento from '@/pages/Conhecimento'
 import PEPAnalisePage from '@/pages/PEP/Analise'
 import PEPDetalhePage from '@/pages/PEP/Detalhe'
 
@@ -87,6 +88,7 @@ export default function App() {
               <Route path="temas" element={<Temas />} />
               <Route path="monitoramento" element={<Monitoramento />} />
               <Route path="qualidade-dados" element={<Qualidade />} />
+              <Route path="conhecimento" element={<Conhecimento />} />
               <Route path="pep/analise" element={<PEPAnalisePage />} />
               <Route path="pep/:wbs" element={<PEPDetalhePage />} />
               <Route path="*" element={

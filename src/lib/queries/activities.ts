@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase, type Atividade } from '../supabase'
+import { supabase, type Atividade, type AtividadeComentario, type AtividadeAlerta, type AtividadeChecklist } from '../supabase'
+
+// ─── Atividades ─────────────────────────────────────────────────────────────
 
 export const useAtividades = () =>
   useQuery<Atividade[]>({
@@ -48,6 +50,20 @@ export const useUpdateAtividadeStatus = () => {
   })
 }
 
+export const useUpdateAtividade = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, ...fields }: Partial<Atividade> & { id: string }) => {
+      const { error } = await supabase
+        .from('atividades')
+        .update({ ...fields, atualizado_em: new Date().toISOString() })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['atividades'] }),
+  })
+}
+
 export const useCreateAtividade = () => {
   const qc = useQueryClient()
   return useMutation({
@@ -68,5 +84,175 @@ export const useDeleteAtividade = () => {
       if (error) throw error
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['atividades'] }),
+  })
+}
+
+// ─── Comentários ────────────────────────────────────────────────────────────
+
+export const useComentarios = (atividadeId: string | null) =>
+  useQuery<AtividadeComentario[]>({
+    queryKey: ['atividade_comentarios', atividadeId],
+    enabled: !!atividadeId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('atividade_comentarios')
+        .select('*')
+        .eq('atividade_id', atividadeId!)
+        .order('criado_em', { ascending: true })
+      if (error) throw error
+      return data ?? []
+    },
+  })
+
+export const useCreateComentario = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (c: Omit<AtividadeComentario, 'id' | 'criado_em'>) => {
+      const { error } = await supabase.from('atividade_comentarios').insert(c)
+      if (error) throw error
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['atividade_comentarios', vars.atividade_id] })
+      qc.invalidateQueries({ queryKey: ['atividade_counts'] })
+    },
+  })
+}
+
+// ─── Alertas ────────────────────────────────────────────────────────────────
+
+export const useAlertas = (atividadeId: string | null) =>
+  useQuery<AtividadeAlerta[]>({
+    queryKey: ['atividade_alertas', atividadeId],
+    enabled: !!atividadeId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('atividade_alertas')
+        .select('*')
+        .eq('atividade_id', atividadeId!)
+        .order('criado_em', { ascending: false })
+      if (error) throw error
+      return data ?? []
+    },
+  })
+
+export const useCreateAlerta = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (a: Omit<AtividadeAlerta, 'id' | 'criado_em'>) => {
+      const { error } = await supabase.from('atividade_alertas').insert(a)
+      if (error) throw error
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['atividade_alertas', vars.atividade_id] })
+      qc.invalidateQueries({ queryKey: ['atividade_counts'] })
+    },
+  })
+}
+
+export const useToggleAlertaResolvido = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, resolvido, atividade_id }: { id: string; resolvido: boolean; atividade_id: string }) => {
+      const { error } = await supabase.from('atividade_alertas').update({ resolvido }).eq('id', id)
+      if (error) throw error
+      return atividade_id
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['atividade_alertas', vars.atividade_id] })
+      qc.invalidateQueries({ queryKey: ['atividade_counts'] })
+    },
+  })
+}
+
+// ─── Counts for badges ─────────────────────────────────────────────────────
+
+export const useAtividadeCounts = () =>
+  useQuery({
+    queryKey: ['atividade_counts'],
+    queryFn: async () => {
+      const [comentarios, alertas, checklist] = await Promise.all([
+        supabase.from('atividade_comentarios').select('atividade_id'),
+        supabase.from('atividade_alertas').select('atividade_id,resolvido'),
+        supabase.from('atividade_checklist').select('atividade_id,concluido'),
+      ])
+      const commentMap: Record<string, number> = {}
+      for (const c of comentarios.data ?? []) {
+        commentMap[c.atividade_id] = (commentMap[c.atividade_id] || 0) + 1
+      }
+      const alertMap: Record<string, number> = {}
+      for (const a of alertas.data ?? []) {
+        if (!(a as any).resolvido) {
+          alertMap[a.atividade_id] = (alertMap[a.atividade_id] || 0) + 1
+        }
+      }
+      const checklistMap: Record<string, { total: number; done: number }> = {}
+      for (const c of checklist.data ?? []) {
+        if (!checklistMap[c.atividade_id]) checklistMap[c.atividade_id] = { total: 0, done: 0 }
+        checklistMap[c.atividade_id].total++
+        if (c.concluido) checklistMap[c.atividade_id].done++
+      }
+      return { commentMap, alertMap, checklistMap }
+    },
+  })
+
+// ─── Checklist ──────────────────────────────────────────────────────────────
+
+export const useChecklist = (atividadeId: string | null) =>
+  useQuery<AtividadeChecklist[]>({
+    queryKey: ['atividade_checklist', atividadeId],
+    enabled: !!atividadeId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('atividade_checklist')
+        .select('*')
+        .eq('atividade_id', atividadeId!)
+        .order('ordem', { ascending: true })
+        .order('criado_em', { ascending: true })
+      if (error) throw error
+      return data ?? []
+    },
+  })
+
+export const useCreateChecklistItem = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (item: Omit<AtividadeChecklist, 'id' | 'criado_em'>) => {
+      const { error } = await supabase.from('atividade_checklist').insert(item)
+      if (error) throw error
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['atividade_checklist', vars.atividade_id] })
+      qc.invalidateQueries({ queryKey: ['atividade_counts'] })
+    },
+  })
+}
+
+export const useToggleChecklistItem = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, concluido, atividade_id }: { id: string; concluido: boolean; atividade_id: string }) => {
+      const { error } = await supabase.from('atividade_checklist').update({ concluido }).eq('id', id)
+      if (error) throw error
+      return atividade_id
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['atividade_checklist', vars.atividade_id] })
+      qc.invalidateQueries({ queryKey: ['atividade_counts'] })
+    },
+  })
+}
+
+export const useDeleteChecklistItem = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, atividade_id }: { id: string; atividade_id: string }) => {
+      const { error } = await supabase.from('atividade_checklist').delete().eq('id', id)
+      if (error) throw error
+      return atividade_id
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['atividade_checklist', vars.atividade_id] })
+      qc.invalidateQueries({ queryKey: ['atividade_counts'] })
+    },
   })
 }

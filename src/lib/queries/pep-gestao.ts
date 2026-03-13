@@ -261,3 +261,85 @@ export const useDeletePepRisco = () => {
     onSuccess: (eid) => qc.invalidateQueries({ queryKey: ['pep_riscos', eid] }),
   })
 }
+
+// ─── Impedimentos Abertos (Dashboard) ─────────────────────────────────────────
+export interface ImpedimentoAberto {
+  id: string
+  descricao: string
+  created_at: string
+  pep_entry_id: string
+  codigo_wbs: string | null
+  pep_descricao: string | null
+}
+
+export const useImpedimentosAbertos = () =>
+  useQuery<ImpedimentoAberto[]>({
+    queryKey: ['pep_impedimentos_abertos'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pep_impedimentos')
+        .select('id, descricao, created_at, pep_entry_id, pep_entries!inner(codigo_wbs, descricao)')
+        .eq('resolvido', false)
+        .order('created_at', { ascending: false })
+        .limit(20)
+      if (error) throw error
+      return (data ?? []).map((d: any) => ({
+        id: d.id,
+        descricao: d.descricao,
+        created_at: d.created_at,
+        pep_entry_id: d.pep_entry_id,
+        codigo_wbs: d.pep_entries?.codigo_wbs ?? null,
+        pep_descricao: d.pep_entries?.descricao ?? null,
+      }))
+    },
+  })
+
+// ─── SEI (Processos) ──────────────────────────────────────────────────────────
+export interface PepSei {
+  id: string
+  pep_entry_id: string
+  numero_processo: string
+  url: string | null
+  descricao: string | null
+  created_at: string
+}
+
+export const usePepSei = (entryId: string | undefined) =>
+  useQuery<PepSei[]>({
+    queryKey: ['pep_sei', entryId],
+    queryFn: async () => {
+      if (!entryId) return []
+      const { data, error } = await supabase
+        .from('pep_sei')
+        .select('*')
+        .eq('pep_entry_id', entryId)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!entryId,
+  })
+
+export const useAddPepSei = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: { pep_entry_id: string; numero_processo: string; url?: string; descricao?: string }) => {
+      const { error } = await supabase.from('pep_sei').insert(payload)
+      if (error) throw error
+      return payload.pep_entry_id
+    },
+    onSuccess: (eid) => qc.invalidateQueries({ queryKey: ['pep_sei', eid] }),
+  })
+}
+
+export const useDeletePepSei = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, pep_entry_id }: { id: string; pep_entry_id: string }) => {
+      const { error } = await supabase.from('pep_sei').delete().eq('id', id)
+      if (error) throw error
+      return pep_entry_id
+    },
+    onSuccess: (eid) => qc.invalidateQueries({ queryKey: ['pep_sei', eid] }),
+  })
+}

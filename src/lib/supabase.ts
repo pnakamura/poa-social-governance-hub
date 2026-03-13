@@ -106,14 +106,42 @@ export type Risco = {
 export type Atividade = {
   id: string
   titulo: string
+  descricao: string | null
   componente: string | null
   responsavel: string | null
   prazo: string | null
   progresso: number
   prioridade: 'Alta' | 'Media' | 'Baixa'
   status: 'todo' | 'progress' | 'waiting' | 'done'
+  cor: string | null
   criado_em: string
   atualizado_em: string
+}
+
+export type AtividadeComentario = {
+  id: string
+  atividade_id: string
+  texto: string
+  autor: string | null
+  criado_em: string
+}
+
+export type AtividadeAlerta = {
+  id: string
+  atividade_id: string
+  tipo: 'info' | 'warning' | 'urgent'
+  mensagem: string
+  resolvido: boolean
+  criado_em: string
+}
+
+export type AtividadeChecklist = {
+  id: string
+  atividade_id: string
+  texto: string
+  concluido: boolean
+  ordem: number
+  criado_em: string
 }
 
 export type NotaCritica = {
