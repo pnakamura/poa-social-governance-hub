@@ -81,11 +81,11 @@ export const useTemaMatches = (palavrasChave: string[]) => {
       const m = marcos.data ?? []
 
       return {
-        riscos: r,
-        atividades: a,
-        pontosAtencao: p,
-        aquisicoes: aq,
-        marcos: m,
+        riscos: r as unknown as Risco[],
+        atividades: a as unknown as Atividade[],
+        pontosAtencao: p as unknown as PontoAtencao[],
+        aquisicoes: aq as unknown as Aquisicao[],
+        marcos: m as unknown as Marco[],
         total: r.length + a.length + p.length + aq.length + m.length,
       }
     },
