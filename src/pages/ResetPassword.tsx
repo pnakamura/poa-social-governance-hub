@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,13 @@ export default function ResetPassword() {
   const { updatePassword, profile } = useAuth()
   const navigate = useNavigate()
 
+  // If user no longer needs to change password, redirect away
+  useEffect(() => {
+    if (profile && !profile.force_password_change) {
+      navigate('/', { replace: true })
+    }
+  }, [profile, navigate])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (newPassword.length < 6) {
@@ -26,13 +33,18 @@ export default function ResetPassword() {
       return
     }
     setLoading(true)
-    const { error } = await updatePassword(newPassword)
-    setLoading(false)
-    if (error) {
-      toast.error('Erro ao redefinir senha', { description: error })
-    } else {
-      toast.success('Senha alterada com sucesso!')
-      navigate('/', { replace: true })
+    try {
+      const { error } = await updatePassword(newPassword)
+      if (error) {
+        toast.error('Erro ao redefinir senha', { description: error })
+      } else {
+        toast.success('Senha alterada com sucesso!')
+        navigate('/', { replace: true })
+      }
+    } catch (err: any) {
+      toast.error('Erro inesperado', { description: err?.message })
+    } finally {
+      setLoading(false)
     }
   }
 
