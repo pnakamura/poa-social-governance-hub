@@ -3,7 +3,7 @@ import {
   AlertTriangle, ListChecks, MessageSquareWarning,
   FileText, Settings, TrendingUp,
   CheckSquare, Calendar, AlertOctagon, ShoppingCart, Tag, Brain, Radar,
-  ShieldCheck, LineChart, BookOpen, Inbox,
+  ShieldCheck, LineChart, BookOpen, Inbox, Users,
   type LucideIcon,
 } from 'lucide-react'
 
