@@ -28,7 +28,7 @@ export const useUltimaSyncLog = () =>
         .limit(1)
         .maybeSingle()
       if (error) throw error
-      return data as unknown as SyncLog
+      return data
     },
   })
 
