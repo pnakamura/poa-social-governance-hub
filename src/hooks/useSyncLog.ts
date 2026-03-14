@@ -12,7 +12,7 @@ export const useSyncLog = (limit = 10) =>
         .order('executado_em', { ascending: false })
         .limit(limit)
       if (error) throw error
-      return (data ?? []) as unknown as SyncLog[]
+      return data ?? []
     },
   })
 
