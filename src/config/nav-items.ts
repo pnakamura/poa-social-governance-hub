@@ -63,6 +63,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: '/relatorios', icon: FileText, label: 'Relatórios' },
       { to: '/conhecimento', icon: BookOpen, label: 'Base de Conhecimento' },
       { to: '/configuracoes', icon: Settings, label: 'Configurações' },
+      { to: '/admin', icon: Users, label: 'Admin' },
     ],
   },
 ]
