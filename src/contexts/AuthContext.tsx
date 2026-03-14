@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import type { Session, User } from '@supabase/supabase-js'
 
@@ -40,42 +40,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, nome, email, role, departamento, cargo, force_password_change')
-      .eq('id', userId)
-      .maybeSingle()
-    if (data) setProfile(data as Profile)
-  }
+  const fetchProfile = useCallback(async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, nome, email, role, departamento, cargo, force_password_change')
+        .eq('id', userId)
+        .maybeSingle()
+      setProfile(data as Profile | null)
+    } catch (err) {
+      console.error('fetchProfile error', err)
+      setProfile(null)
+    }
+  }, [])
 
-  const refreshProfile = async () => {
-    if (user) await fetchProfile(user.id)
-  }
+  const refreshProfile = useCallback(async () => {
+    const { data: { session: s } } = await supabase.auth.getSession()
+    if (s?.user) await fetchProfile(s.user.id)
+  }, [fetchProfile])
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        await fetchProfile(session.user.id)
+    // Get initial session first
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      setSession(s)
+      setUser(s?.user ?? null)
+      if (s?.user) {
+        fetchProfile(s.user.id).finally(() => setLoading(false))
+      } else {
+        setLoading(false)
+      }
+    })
+
+    // Then listen for changes — do NOT await inside callback to avoid lock contention
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s)
+      setUser(s?.user ?? null)
+      if (s?.user) {
+        // Fire-and-forget to avoid blocking the auth lock
+        fetchProfile(s.user.id)
       } else {
         setProfile(null)
       }
-      setLoading(false)
-    })
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchProfile(session.user.id)
-      }
-      setLoading(false)
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [fetchProfile])
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -87,13 +96,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null)
   }
 
-  const updatePassword = async (newPassword: string) => {
-    const { error } = await supabase.auth.updateUser({ password: newPassword })
-    if (!error && profile) {
-      await supabase.from('profiles').update({ force_password_change: false }).eq('id', profile.id)
-      setProfile({ ...profile, force_password_change: false })
+  const updatePassword = async (newPassword: string): Promise<{ error: string | null }> => {
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) return { error: error.message }
+
+      // Use session user id directly, not stale profile state
+      const currentUser = (await supabase.auth.getUser()).data.user
+      if (!currentUser) return { error: 'Sessão expirada' }
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ force_password_change: false })
+        .eq('id', currentUser.id)
+
+      if (profileError) return { error: profileError.message }
+
+      // Refresh profile so ProtectedRoute sees the new flag
+      await fetchProfile(currentUser.id)
+      return { error: null }
+    } catch (err: any) {
+      return { error: err?.message ?? 'Erro inesperado' }
     }
-    return { error: error?.message ?? null }
   }
 
   return (
