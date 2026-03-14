@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.rag-embed-batch]
 verify_jwt = false
+
+[functions.admin-users]
+verify_jwt = false
+
+[functions.seed-admin]
+verify_jwt = false

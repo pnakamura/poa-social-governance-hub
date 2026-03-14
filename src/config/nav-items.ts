@@ -69,4 +69,4 @@ export const NAV_GROUPS: NavGroup[] = [
 ]
 
 /** Routes that can never be hidden */
-export const PROTECTED_ROUTES = ['/', '/configuracoes']
+export const PROTECTED_ROUTES = ['/', '/configuracoes', '/admin']
