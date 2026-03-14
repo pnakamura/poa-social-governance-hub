@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase, type PmrOutput, type PmrOutcome } from '../supabase'
 
 export const usePMROutputs = () =>
@@ -51,3 +51,45 @@ export const usePMRKPIs = () =>
       }
     },
   })
+
+// ── Mutations ──────────────────────────────────────────────────────────────
+
+export const useUpdatePMROutput = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, realizado, meta_contrato }: { id: string; realizado: number; meta_contrato: number | null }) => {
+      const pct_realizado = meta_contrato && meta_contrato > 0
+        ? (realizado / meta_contrato) * 100
+        : 0
+      const { error } = await supabase
+        .from('pmr_outputs')
+        .update({ realizado, pct_realizado })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pmr_outputs'] })
+      qc.invalidateQueries({ queryKey: ['pmr_kpis'] })
+    },
+  })
+}
+
+export const useUpdatePMROutcome = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, realizado, meta_contrato }: { id: string; realizado: number; meta_contrato: number | null }) => {
+      const pct_realizado = meta_contrato && meta_contrato > 0
+        ? (realizado / meta_contrato) * 100
+        : 0
+      const { error } = await supabase
+        .from('pmr_outcomes')
+        .update({ realizado, pct_realizado })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pmr_outcomes'] })
+      qc.invalidateQueries({ queryKey: ['pmr_kpis'] })
+    },
+  })
+}

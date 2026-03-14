@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { TrendingUp } from 'lucide-react'
-import { usePMROutcomes } from '@/lib/queries/pmr'
+import { usePMROutcomes, useUpdatePMROutcome } from '@/lib/queries/pmr'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 const semaforo = (pct: number) => {
   if (pct >= 75) return 'bg-green-500'
@@ -12,6 +15,27 @@ const semaforo = (pct: number) => {
 
 export default function PMROutcomes() {
   const { data = [], isLoading } = usePMROutcomes()
+  const updateMutation = useUpdatePMROutcome()
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editValue, setEditValue] = useState('')
+
+  const handleSave = (item: typeof data[0]) => {
+    const realizado = parseFloat(editValue.replace(',', '.'))
+    if (isNaN(realizado)) {
+      toast.error('Valor inválido')
+      return
+    }
+    updateMutation.mutate(
+      { id: item.id, realizado, meta_contrato: item.meta_contrato },
+      {
+        onSuccess: () => {
+          toast.success('Realizado atualizado')
+          setEditingId(null)
+        },
+        onError: (e) => toast.error(`Erro: ${e.message}`),
+      }
+    )
+  }
 
   const groups = data.reduce<Record<string, typeof data>>((acc, item) => {
     const key = item.componente ?? 'Sem componente'
@@ -23,7 +47,7 @@ export default function PMROutcomes() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold">PMR — Indicadores de Outcomes</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Impactos e resultados do programa</p>
+        <p className="text-sm text-muted-foreground mt-0.5">Impactos e resultados do programa. Clique no valor "Realizado" para editar.</p>
       </div>
 
       {isLoading ? (
@@ -51,7 +75,7 @@ export default function PMROutcomes() {
                     <th className="text-left px-4 py-2 w-24">Unidade</th>
                     <th className="text-right px-4 py-2 w-28">Linha base</th>
                     <th className="text-right px-4 py-2 w-28">Meta</th>
-                    <th className="text-right px-4 py-2 w-24">Realizado</th>
+                    <th className="text-right px-4 py-2 w-28">Realizado</th>
                     <th className="text-right px-4 py-2 w-24">% Meta</th>
                     <th className="text-left px-4 py-2 w-32">Fonte</th>
                   </tr>
@@ -64,7 +88,31 @@ export default function PMROutcomes() {
                       <td className="px-4 py-3 text-muted-foreground">{item.unidade ?? '—'}</td>
                       <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{item.linha_base?.toLocaleString('pt-BR') ?? '—'}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{item.meta_contrato?.toLocaleString('pt-BR') ?? '—'}</td>
-                      <td className="px-4 py-3 text-right tabular-nums font-medium">{item.realizado.toLocaleString('pt-BR')}</td>
+                      <td className="px-4 py-3 text-right">
+                        {editingId === item.id ? (
+                          <Input
+                            autoFocus
+                            className="w-24 h-7 text-right text-sm ml-auto"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onBlur={() => handleSave(item)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSave(item)
+                              if (e.key === 'Escape') setEditingId(null)
+                            }}
+                          />
+                        ) : (
+                          <button
+                            className="tabular-nums font-medium hover:underline cursor-pointer"
+                            onClick={() => {
+                              setEditingId(item.id)
+                              setEditValue(String(item.realizado))
+                            }}
+                          >
+                            {item.realizado.toLocaleString('pt-BR')}
+                          </button>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">

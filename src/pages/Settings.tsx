@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Upload, Database, RefreshCw, Settings as SettingsIcon, Eye, RotateCcw } from 'lucide-react'
+import { Upload, Database, RefreshCw, Settings as SettingsIcon, Eye, RotateCcw, BarChart3 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -8,11 +8,15 @@ import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import { NAV_GROUPS, PROTECTED_ROUTES } from '@/config/nav-items'
 import { useMenuVisibility } from '@/hooks/useMenuVisibility'
+import { toast } from 'sonner'
+
+const SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1zk6KJCvbr7HKlDYIAIDKDBCyZ_rR3ZW2Kck1gYqrQyY'
 
 export default function Settings() {
   const qc = useQueryClient()
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<string | null>(null)
+  const [syncingPMR, setSyncingPMR] = useState(false)
   const { isVisible, setRouteVisible, resetAll } = useMenuVisibility()
 
   const testConnection = async () => {
@@ -26,6 +30,28 @@ export default function Settings() {
       setTestResult(`✗ Erro: ${e.message}`)
     } finally {
       setTesting(false)
+    }
+  }
+
+  const syncPMR = async () => {
+    setSyncingPMR(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-pmr-sheets')
+      if (error) throw error
+      if (data?.success) {
+        const o = data.results?.outputs?.upserted ?? 0
+        const oc = data.results?.outcomes?.upserted ?? 0
+        toast.success(`PMR sincronizado: ${o} outputs, ${oc} outcomes`)
+        qc.invalidateQueries({ queryKey: ['pmr_outputs'] })
+        qc.invalidateQueries({ queryKey: ['pmr_outcomes'] })
+        qc.invalidateQueries({ queryKey: ['pmr_kpis'] })
+      } else {
+        toast.error(`Erro: ${data?.error ?? 'Falha desconhecida'}`)
+      }
+    } catch (e: any) {
+      toast.error(`Erro ao sincronizar PMR: ${e.message}`)
+    } finally {
+      setSyncingPMR(false)
     }
   }
 
@@ -114,6 +140,29 @@ export default function Settings() {
         </CardContent>
       </Card>
 
+      {/* Sync PMR */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Sincronizar PMR (Outputs &amp; Outcomes)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Importa indicadores de Outputs e Outcomes da{' '}
+            <a href={SPREADSHEET_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+              planilha consolidada
+            </a>
+            . Valores de "realizado" preenchidos manualmente serão preservados.
+          </p>
+          <Button onClick={syncPMR} disabled={syncingPMR} variant="outline" size="sm" className="gap-2">
+            <RefreshCw className={`w-4 h-4 ${syncingPMR ? 'animate-spin' : ''}`} />
+            Sincronizar PMR
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Import */}
       <Card>
         <CardHeader className="pb-2">
@@ -124,7 +173,11 @@ export default function Settings() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Para importar dados da planilha PEP RS, execute o script Python no terminal:
+            Para importar dados da{' '}
+            <a href={SPREADSHEET_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+              planilha PEP RS
+            </a>
+            , execute o script Python no terminal:
           </p>
           <div className="bg-gray-950 text-green-400 rounded-lg p-4 font-mono text-xs leading-relaxed">
             <p className="text-gray-500"># Instalar dependências</p>

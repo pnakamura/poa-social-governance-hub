@@ -3,7 +3,7 @@ import {
   AlertTriangle, ListChecks, MessageSquareWarning,
   FileText, Settings, TrendingUp,
   CheckSquare, Calendar, AlertOctagon, ShoppingCart, Tag, Brain, Radar,
-  ShieldCheck, LineChart, BookOpen, Inbox,
+  ShieldCheck, LineChart, BookOpen, Inbox, Users,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -63,9 +63,10 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: '/relatorios', icon: FileText, label: 'Relatórios' },
       { to: '/conhecimento', icon: BookOpen, label: 'Base de Conhecimento' },
       { to: '/configuracoes', icon: Settings, label: 'Configurações' },
+      { to: '/admin', icon: Users, label: 'Admin' },
     ],
   },
 ]
 
 /** Routes that can never be hidden */
-export const PROTECTED_ROUTES = ['/', '/configuracoes']
+export const PROTECTED_ROUTES = ['/', '/configuracoes', '/admin']

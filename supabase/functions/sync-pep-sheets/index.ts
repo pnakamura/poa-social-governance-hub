@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SPREADSHEET_ID = "1C6uIqjqwpgToNWm3YqliqKzb2gPb8cHC";
+const SPREADSHEET_ID = "1zk6KJCvbr7HKlDYIAIDKDBCyZ_rR3ZW2Kck1gYqrQyY";
 const SHEET_NAME = "PEP RS";
 const VALID_REFS = new Set(["C", "SC", "P", "SP", "PT"]);
 
@@ -62,23 +62,17 @@ function normalizeBrNum(v: string): string {
   const lastDot = s.lastIndexOf(".");
 
   if (dots > 1 && commas === 0) {
-    // BR thousands only: 27.000.000 → remove all dots
     s = s.replace(/\./g, "");
   } else if (commas > 1 && dots === 0) {
-    // US thousands only: 27,000,000 → remove all commas
     s = s.replace(/,/g, "");
   } else if (dots === 1 && commas === 0) {
-    // Ambiguous: "211.630" (BR thousands) vs "3.50" (US decimal)
     const afterDot = s.substring(lastDot + 1);
     if (afterDot.length === 3) {
-      s = s.replace(".", ""); // BR thousands: 211.630 → 211630
+      s = s.replace(".", "");
     }
-    // else: US decimal: 3.50 → keep as is
   } else if (lastComma > lastDot) {
-    // Brazilian decimal: 27.000,50 → remove dots, replace comma with dot
     s = s.replace(/\./g, "").replace(",", ".");
   } else {
-    // US decimal or no separator: 27,000.50 or 27000
     s = s.replace(/,/g, "");
   }
   return s;
@@ -152,6 +146,10 @@ Deno.serve(async (req) => {
       if (!ref || !VALID_REFS.has(ref)) continue;
 
       const ncols = row.length;
+      const codigoWbs = txt(row[8]);
+
+      // Skip rows without codigo_wbs (needed for UPSERT)
+      if (!codigoWbs) continue;
 
       pepRows.push({
         ref,
@@ -160,7 +158,7 @@ Deno.serve(async (req) => {
         subp: intOrNull(row[3]),
         pct: intOrNull(row[4]),
         lote: txt(row[7]),
-        codigo_wbs: txt(row[8]),
+        codigo_wbs: codigoWbs,
         descricao: txt(row[9]),
         k_reais_bid: numOrNull(row[10]),
         l_reais_local: numOrNull(row[11]),
@@ -170,42 +168,31 @@ Deno.serve(async (req) => {
         p_atual: num(row[15]),
         r_base: num(row[17]),
         s_base: num(row[18]),
-        t_base: num(row[19]),
-        secretaria: ncols > 24 ? txt(row[24]) : null,
-        pmr_ref: ncols > 25 ? txt(row[25]) : null,
-        pa_ref: ncols > 26 ? txt(row[26]) : null,
-        tipo_aquisicao: ncols > 27 ? txt(row[27]) : null,
-        metodo_aquisicao: ncols > 28 ? txt(row[28]) : null,
-        fisica_2025: ncols > 29 ? flag(row[29]) : 0,
-        fisica_2026: ncols > 30 ? flag(row[30]) : 0,
-        fisica_2027: ncols > 31 ? flag(row[31]) : 0,
-        fisica_2028: ncols > 32 ? flag(row[32]) : 0,
-        fisica_2029: ncols > 33 ? flag(row[33]) : 0,
-        fisica_eop: ncols > 34 ? flag(row[34]) : 0,
-        desembolso_2025: ncols > 35 ? numOrNull(row[35]) : null,
-        desembolso_2026: ncols > 36 ? numOrNull(row[36]) : null,
-        desembolso_2027: ncols > 37 ? numOrNull(row[37]) : null,
-        desembolso_2028: ncols > 38 ? numOrNull(row[38]) : null,
-        desembolso_2029: ncols > 39 ? numOrNull(row[39]) : null,
-        desembolso_total: ncols > 40 ? numOrNull(row[40]) : null,
+        t_base: num(row[20]),
+        secretaria: ncols > 28 ? txt(row[28]) : null,
+        pmr_ref: ncols > 29 ? txt(row[29]) : null,
+        pa_ref: ncols > 30 ? txt(row[30]) : null,
+        tipo_aquisicao: ncols > 31 ? txt(row[31]) : null,
+        metodo_aquisicao: ncols > 32 ? txt(row[32]) : null,
+        fisica_2025: ncols > 33 ? flag(row[33]) : 0,
+        fisica_2026: ncols > 34 ? flag(row[34]) : 0,
+        fisica_2027: ncols > 35 ? flag(row[35]) : 0,
+        fisica_2028: ncols > 36 ? flag(row[36]) : 0,
+        fisica_2029: ncols > 37 ? flag(row[37]) : 0,
+        fisica_eop: ncols > 38 ? flag(row[38]) : 0,
+        desembolso_2025: ncols > 39 ? numOrNull(row[39]) : null,
+        desembolso_2026: ncols > 40 ? numOrNull(row[40]) : null,
+        desembolso_2027: ncols > 41 ? numOrNull(row[41]) : null,
+        desembolso_2028: ncols > 42 ? numOrNull(row[42]) : null,
+        desembolso_2029: ncols > 43 ? numOrNull(row[43]) : null,
+        desembolso_total: ncols > 44 ? numOrNull(row[44]) : null,
         versao,
         linha_excel: i + 1,
+        // NOTE: resumo_executivo is NOT included — preserves manual edits
       });
     }
 
     console.log(`Found ${pepRows.length} valid PEP entries`);
-
-    // Debug: log columns 20-30 of first few PT rows to identify secretaria column
-    const ptSamples = allRows.slice(3, Math.min(allRows.length, 246))
-      .filter(r => r[0]?.trim() === 'PT')
-      .slice(0, 3);
-    ptSamples.forEach((row, idx) => {
-      const cols: Record<string, string> = {};
-      for (let c = 20; c <= Math.min(35, row.length - 1); c++) {
-        cols[`col${c}`] = row[c]?.substring(0, 30) ?? '';
-      }
-      console.log(`PT sample ${idx} (row desc: ${row[9]?.substring(0, 40)}):`, JSON.stringify(cols));
-    });
 
     if (pepRows.length === 0) {
       return new Response(
@@ -214,24 +201,30 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 3. Supabase: delete old + insert new
+    // 3. Supabase: UPSERT (preserva resumo_executivo e UUIDs existentes)
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const client = createClient(supabaseUrl, supabaseKey);
 
-    // Delete existing version
-    await client.from("pep_entries").delete().eq("versao", versao);
-
-    // Batch insert (50 at a time)
     let inserted = 0;
+    let updated = 0;
+
     for (let i = 0; i < pepRows.length; i += 50) {
       const batch = pepRows.slice(i, i + 50);
-      const { error } = await client.from("pep_entries").insert(batch);
+      const { data, error } = await client
+        .from("pep_entries")
+        .upsert(batch, {
+          onConflict: "codigo_wbs,versao",
+          ignoreDuplicates: false,
+        })
+        .select("id");
+
       if (error) {
-        console.error(`Insert batch error at ${i}:`, error.message);
-        throw new Error(`Insert failed: ${error.message}`);
+        console.error(`Upsert batch error at ${i}:`, error.message);
+        throw new Error(`Upsert failed: ${error.message}`);
       }
-      inserted += batch.length;
+      const count = data?.length ?? batch.length;
+      inserted += count;
     }
 
     // 4. Log to sync_log
@@ -247,7 +240,7 @@ Deno.serve(async (req) => {
       executado_por: "edge_function:sync-pep-sheets",
     });
 
-    console.log(`✅ Sync complete: ${inserted} rows inserted for versão ${versao}`);
+    console.log(`✅ Sync complete: ${inserted} rows upserted for versão ${versao}`);
 
     return new Response(
       JSON.stringify({ success: true, rows: inserted, versao }),
@@ -257,7 +250,6 @@ Deno.serve(async (req) => {
     console.error("Sync error:", error);
     const msg = error instanceof Error ? error.message : "Unknown error";
 
-    // Try to log failure
     try {
       const client = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
       await client.from("sync_log").insert({

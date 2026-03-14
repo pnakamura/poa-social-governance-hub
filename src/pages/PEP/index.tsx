@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { ChevronRight, ChevronDown, Search, X, ExternalLink, DollarSign, Calendar, BarChart3, Activity, RefreshCw, Filter, Building2, Package } from 'lucide-react'
+import { ChevronRight, ChevronDown, Search, X, ExternalLink, DollarSign, Calendar, BarChart3, Activity, RefreshCw, Filter, Building2, Package, EyeOff } from 'lucide-react'
 import { usePEPEntries, usePEPVersoes, usePEPCronogramaFisico } from '@/lib/queries/pep'
 import { usePMROutputs, usePMROutcomes } from '@/lib/queries/pmr'
 import { type PepEntry } from '@/lib/supabase'
@@ -19,6 +19,7 @@ import { supabase } from '@/lib/supabase'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Legend,
 } from 'recharts'
+import { useHiddenPepIds } from '@/lib/queries/pep-gestao'
 
 // ─── Formatadores ─────────────────────────────────────────────────────────────
 const fUSD = (v: number | null | undefined) =>
@@ -291,11 +292,12 @@ function DetailPanel({ entry, onClose, moeda }: { entry: PepEntry | null; onClos
 }
 
 // ─── Tab 1: Hierarquia ────────────────────────────────────────────────────────
-function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry }: {
+function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry, hiddenIds }: {
   entries: PepEntry[]
   isLoading: boolean
   moeda: 'USD' | 'BRL'
   onSelectEntry: (e: PepEntry) => void
+  hiddenIds?: Set<string>
 }) {
   const [search, setSearch] = useState('')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
@@ -533,6 +535,7 @@ function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry }: 
                   const isC  = row.ref === 'C'
                   const isPT = row.ref === 'PT'
                   const highlighted = search && matchingIds?.has(row.id)
+                  const isHidden = hiddenIds?.has(row.id)
                   const vals = getValues(row, moeda)
 
                   return (
@@ -544,6 +547,7 @@ function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry }: 
                         row.ref === 'P' && 'bg-muted/20',
                         isPT && 'text-muted-foreground',
                         highlighted && 'bg-yellow-50 dark:bg-yellow-900/20',
+                        isHidden && 'opacity-40',
                       )}
                       onClick={() => onSelectEntry(row)}
                     >
@@ -571,6 +575,7 @@ function HierarchyTab({ entries: rawEntries, isLoading, moeda, onSelectEntry }: 
                           <span className={cn('truncate max-w-[260px]', isC && 'text-primary')} title={row.descricao ?? ''}>
                             {row.descricao}
                           </span>
+                          {isHidden && <EyeOff className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
                         </div>
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums">{f(vals.bid)}</td>
@@ -999,6 +1004,7 @@ function PMRTab({ pepEntries }: { pepEntries: PepEntry[] }) {
 // ─── Página Principal ─────────────────────────────────────────────────────────
 export default function PEPPage() {
   const [versao, setVersao] = useState('v2')
+  const [showHidden, setShowHidden] = useState(false)
   const [moeda, setMoeda] = useState<'USD' | 'BRL'>('USD')
   const [filtroSecretaria, setFiltroSecretaria] = useState('todos')
   const [filtroLote, setFiltroLote] = useState('todos')
@@ -1008,7 +1014,15 @@ export default function PEPPage() {
 
   const queryClient = useQueryClient()
   const { data: versoes = [] } = usePEPVersoes()
-  const { data: entries = [], isLoading } = usePEPEntries(versao)
+  const { data: allEntries = [], isLoading } = usePEPEntries(versao)
+  const { data: hiddenIds = [] } = useHiddenPepIds()
+
+  // Filter out hidden entries (unless showHidden is active)
+  const hiddenSet = useMemo(() => new Set(hiddenIds), [hiddenIds])
+  const entries = useMemo(() => {
+    if (showHidden || hiddenIds.length === 0) return allEntries
+    return allEntries.filter(e => !hiddenSet.has(e.id))
+  }, [allEntries, hiddenIds, hiddenSet, showHidden])
 
   // Derive secretaria list from PT entries
   const secretarias = useMemo(() =>
@@ -1144,6 +1158,19 @@ export default function PEPPage() {
             </Select>
           )}
 
+          {/* Show hidden toggle */}
+          {hiddenIds.length > 0 && (
+            <Button
+              variant={showHidden ? 'default' : 'outline'}
+              size="sm"
+              className="h-8 text-xs gap-1.5"
+              onClick={() => setShowHidden(!showHidden)}
+            >
+              <EyeOff className="w-3.5 h-3.5" />
+              {showHidden ? `Ocultos (${hiddenIds.length})` : `${hiddenIds.length} oculto${hiddenIds.length > 1 ? 's' : ''}`}
+            </Button>
+          )}
+
           <div className="flex rounded-md border border-border overflow-hidden text-xs">
             <button
               className={cn('px-3 py-1.5 transition-colors', moeda === 'USD' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}
@@ -1252,6 +1279,7 @@ export default function PEPPage() {
             isLoading={isLoading}
             moeda={moeda}
             onSelectEntry={handleSelectEntry}
+            hiddenIds={showHidden ? hiddenSet : undefined}
           />
         </TabsContent>
 

@@ -3,6 +3,8 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/sonner'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { AuthProvider } from '@/contexts/AuthContext'
+import { ProtectedRoute } from '@/components/ProtectedRoute'
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null }
@@ -54,6 +56,9 @@ import Qualidade from '@/pages/Qualidade'
 import Conhecimento from '@/pages/Conhecimento'
 import PEPAnalisePage from '@/pages/PEP/Analise'
 import PEPDetalhePage from '@/pages/PEP/Detalhe'
+import Login from '@/pages/Login'
+import ResetPassword from '@/pages/ResetPassword'
+import Admin from '@/pages/Admin'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -67,38 +72,43 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<AppLayout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="programa" element={<ProgramProfile />} />
-              <Route path="pep" element={<PEPPage />} />
-              <Route path="pmr/outputs" element={<PMROutputs />} />
-              <Route path="pmr/outcomes" element={<PMROutcomes />} />
-              <Route path="riscos" element={<Risks />} />
-              <Route path="atividades" element={<Activities />} />
-              <Route path="demandas" element={<Demandas />} />
-              <Route path="nao-objecoes" element={<NoObjections />} />
-              <Route path="analise" element={<Analysis />} />
-              <Route path="inteligencia" element={<Inteligencia />} />
-              <Route path="relatorios" element={<Reports />} />
-              <Route path="configuracoes" element={<Settings />} />
-              <Route path="marcos" element={<Marcos />} />
-              <Route path="pontos-atencao" element={<PontosAtencao />} />
-              <Route path="aquisicoes" element={<Aquisicoes />} />
-              <Route path="temas" element={<Temas />} />
-              <Route path="monitoramento" element={<Monitoramento />} />
-              <Route path="qualidade-dados" element={<Qualidade />} />
-              <Route path="conhecimento" element={<Conhecimento />} />
-              <Route path="pep/analise" element={<PEPAnalisePage />} />
-              <Route path="pep/:wbs" element={<PEPDetalhePage />} />
-              <Route path="*" element={
-                <div className="flex flex-col items-center justify-center h-64 gap-2">
-                  <p className="text-3xl font-bold text-muted-foreground">404</p>
-                  <p className="text-sm text-muted-foreground">Página não encontrada</p>
-                </div>
-              } />
-            </Route>
-          </Routes>
+          <AuthProvider>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                <Route index element={<Dashboard />} />
+                <Route path="programa" element={<ProgramProfile />} />
+                <Route path="pep" element={<PEPPage />} />
+                <Route path="pmr/outputs" element={<PMROutputs />} />
+                <Route path="pmr/outcomes" element={<PMROutcomes />} />
+                <Route path="riscos" element={<Risks />} />
+                <Route path="atividades" element={<Activities />} />
+                <Route path="demandas" element={<Demandas />} />
+                <Route path="nao-objecoes" element={<NoObjections />} />
+                <Route path="analise" element={<Analysis />} />
+                <Route path="inteligencia" element={<Inteligencia />} />
+                <Route path="relatorios" element={<Reports />} />
+                <Route path="configuracoes" element={<Settings />} />
+                <Route path="marcos" element={<Marcos />} />
+                <Route path="pontos-atencao" element={<PontosAtencao />} />
+                <Route path="aquisicoes" element={<Aquisicoes />} />
+                <Route path="temas" element={<Temas />} />
+                <Route path="monitoramento" element={<Monitoramento />} />
+                <Route path="qualidade-dados" element={<Qualidade />} />
+                <Route path="conhecimento" element={<Conhecimento />} />
+                <Route path="pep/analise" element={<PEPAnalisePage />} />
+                <Route path="pep/:wbs" element={<PEPDetalhePage />} />
+                <Route path="admin" element={<ProtectedRoute requiredRole="admin"><Admin /></ProtectedRoute>} />
+                <Route path="*" element={
+                  <div className="flex flex-col items-center justify-center h-64 gap-2">
+                    <p className="text-3xl font-bold text-muted-foreground">404</p>
+                    <p className="text-sm text-muted-foreground">Página não encontrada</p>
+                  </div>
+                } />
+              </Route>
+            </Routes>
+          </AuthProvider>
         </BrowserRouter>
         <Toaster position="bottom-right" richColors />
       </TooltipProvider>
