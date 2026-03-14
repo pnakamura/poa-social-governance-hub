@@ -1,7 +1,9 @@
 // Re-export the single Supabase client to avoid session lock contention
-import { supabase } from '@/integrations/supabase/client'
-export { supabase }
+// Cast away Database generic to keep backward-compat with domain types in this file
+import { supabase as typedClient } from '@/integrations/supabase/client'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
+export const supabase: SupabaseClient = typedClient as any
 export const supabaseConfigured = true
 
 // ─── Tipos de domínio ──────────────────────────────────────────────────────
