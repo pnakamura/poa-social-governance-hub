@@ -12,6 +12,6 @@ export const useMarcos = (filtros?: { area?: string; tipo?: string; status?: str
       if (filtros?.status) q = q.eq('status', filtros.status)
       const { data, error } = await q
       if (error) throw error
-      return (data ?? []) as unknown as Marco[]
+      return data ?? []
     },
   })

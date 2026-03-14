@@ -15,6 +15,6 @@ export const useAquisicoes = (filtros?: { secretaria?: string; tipo?: string; st
       if (filtros?.status) q = q.eq('status', filtros.status)
       const { data, error } = await q
       if (error) throw error
-      return (data ?? []) as unknown as Aquisicao[]
+      return data ?? []
     },
   })

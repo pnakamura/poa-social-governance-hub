@@ -13,6 +13,6 @@ export const usePontosAtencao = (apenasAtivos = true) =>
       if (apenasAtivos) q = q.eq('ativo', true)
       const { data, error } = await q
       if (error) throw error
-      return (data ?? []) as unknown as PontoAtencao[]
+      return data ?? []
     },
   })
