@@ -1,15 +1,17 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SyncStatusBadge } from '@/components/SyncStatusBadge'
 import { NAV_GROUPS } from '@/config/nav-items'
 import { useMenuVisibility } from '@/hooks/useMenuVisibility'
+import { useAuth } from '@/contexts/AuthContext'
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const location = useLocation()
   const { isVisible } = useMenuVisibility()
+  const { profile, role, signOut } = useAuth()
 
   return (
     <aside
@@ -37,7 +39,12 @@ export function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-5 custom-scrollbar">
         {NAV_GROUPS.map((group) => {
-          const visibleItems = group.items.filter(item => isVisible(item.to))
+          const visibleItems = group.items.filter(item => {
+            if (!isVisible(item.to)) return false
+            // Admin route only for admin
+            if (item.to === '/admin' && role !== 'admin') return false
+            return true
+          })
           if (visibleItems.length === 0) return null
 
           return (
@@ -102,14 +109,21 @@ export function Sidebar() {
       <div className={cn('p-3 border-t border-sidebar-border', collapsed && 'flex justify-center')}>
         {!collapsed ? (
           <div className="flex items-center gap-2 px-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sidebar-primary/30 to-sidebar-primary/10 ring-2 ring-sidebar-primary/20 flex items-center justify-center text-sidebar-primary text-xs font-semibold">PN</div>
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-sidebar-foreground truncate">Paulo Nakamura</p>
-              <p className="text-[10px] text-sidebar-foreground/40 truncate">DPF / SMPG</p>
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sidebar-primary/30 to-sidebar-primary/10 ring-2 ring-sidebar-primary/20 flex items-center justify-center text-sidebar-primary text-xs font-semibold">
+              {profile?.nome?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() ?? '??'}
             </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-sidebar-foreground truncate">{profile?.nome ?? 'Usuário'}</p>
+              <p className="text-[10px] text-sidebar-foreground/40 truncate">{profile?.email ?? ''}</p>
+            </div>
+            <button onClick={signOut} className="p-1.5 rounded-md text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors" title="Sair">
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
           </div>
         ) : (
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sidebar-primary/30 to-sidebar-primary/10 ring-2 ring-sidebar-primary/20 flex items-center justify-center text-sidebar-primary text-xs font-semibold">PN</div>
+          <button onClick={signOut} className="w-8 h-8 rounded-full bg-gradient-to-br from-sidebar-primary/30 to-sidebar-primary/10 ring-2 ring-sidebar-primary/20 flex items-center justify-center text-sidebar-primary text-xs font-semibold hover:ring-sidebar-primary/40 transition-all" title="Sair">
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
         )}
       </div>
     </aside>
